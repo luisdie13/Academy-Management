@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #3B82F6;
+  --secondary-color: #10B981;
+}
+
+/* Global Styles */
+* {
+  @apply scroll-smooth;
+}
+
+body {
+  @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300;
+  font-feature-settings: "rounding" 1;
+}
+
+/* Typography */
+h1 {
+  @apply text-4xl font-bold tracking-tight;
+}
+
+h2 {
+  @apply text-3xl font-bold tracking-tight;
+}
+
+h3 {
+  @apply text-2xl font-semibold;
+}
+
+h4 {
+  @apply text-xl font-semibold;
+}
+
+p {
+  @apply text-gray-700 dark:text-gray-300 leading-relaxed;
+}
+
+a {
+  @apply text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors;
+}
+
+/* Form Elements */
+input,
+textarea,
+select {
+  @apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all;
+}
+
+/* Buttons */
+button {
+  @apply font-medium transition-all duration-200;
+}
+
+/* Utility Classes */
+.container-max {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.shadow-card {
+  @apply shadow-md dark:shadow-lg;
+}
+
+.smooth-transition {
+  transition: all 300ms ease-in-out;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100 dark:bg-gray-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-400 dark:bg-gray-600 rounded-full hover:bg-gray-500 dark:hover:bg-gray-500;
+}
+
+/* Loading Animation */
+.loader {
+  @apply animate-spin h-5 w-5 text-primary-600;
+}
+
+/* Error/Success States */
+.error {
+  @apply text-red-600 dark:text-red-400;
+}
+
+.success {
+  @apply text-green-600 dark:text-green-400;
+}
+
+.warning {
+  @apply text-yellow-600 dark:text-yellow-400;
+}
+
+.info {
+  @apply text-blue-600 dark:text-blue-400;
+}
+
+/* ── Dynamic brand theme ────────────────────────────────────────────────────
+   Variables are set at runtime by ThemeContext from the academy's DB colors.
+   Use these classes on themed elements instead of hardcoded Tailwind primary-*
+   ────────────────────────────────────────────────────────────────────────── */
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.88;
+}
+
+.btn-outline-primary {
+  border: 2px solid var(--primary-color);
+  color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.text-brand {
+  color: var(--primary-color);
+}
+
+.bg-brand {
+  background-color: var(--primary-color);
+}
+
+.bg-brand-secondary {
+  background-color: var(--secondary-color);
+}
+
+.border-brand {
+  border-color: var(--primary-color);
+}
+
+.sidebar-active {
+  border-left: 4px solid var(--secondary-color);
+  color: var(--primary-color);
+}
+
+.ring-brand:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}

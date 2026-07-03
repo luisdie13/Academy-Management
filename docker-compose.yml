@@ -1,0 +1,79 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: academy_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-academy_db}
+      POSTGRES_USER: ${DB_USER:-academy_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-academy_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/
+    networks:
+      - academy_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-academy_user} -d ${DB_NAME:-academy_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (Node.js + Express)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: academy_backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-academy_db}
+      DB_USER: ${DB_USER:-academy_user}
+      DB_PASSWORD: ${DB_PASSWORD:-academy_password}
+      JWT_SECRET: ${JWT_SECRET:-your_super_secret_jwt_key_change_in_production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      PORT: ${API_PORT:-3000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:5173}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - academy_network
+    command: npm run dev
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: academy_frontend
+    environment:
+      VITE_API_URL: /api
+      VITE_PROXY_TARGET: http://backend:3000
+      VITE_PORT: 5173
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - academy_network
+    command: npm run dev
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  academy_network:
+    driver: bridge

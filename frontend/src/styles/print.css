@@ -1,0 +1,163 @@
+/**
+ * 🖨️ GLOBAL PRINT STYLES
+ * Optimización completa para vista previa de impresión
+ * Corrige congelamiento en Chrome Print Preview
+ */
+
+@media print {
+  /* ===== CONFIGURACIÓN DE PÁGINA - REMOVER ENCABEZADOS Y PIES ===== */
+  @page {
+    /* Al poner el margen de la página en 0, Chrome elimina automáticamente los encabezados y pies de página */
+    margin: 0;
+  }
+
+  body {
+    /* Le damos el margen real al body para que el contenido no se pegue al borde físico de la hoja */
+    padding: 2cm;
+    background-color: #ffffff;
+  }
+
+  /* Asegúrate de ocultar cualquier botón o elemento extra */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* ===== DESACTIVAR TODAS LAS ANIMACIONES Y TRANSICIONES ===== */
+  * {
+    animation: none !important;
+    transition: none !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+
+  /* ===== RESETEAR ESTILOS DE PÁGINA ===== */
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* ===== FORZAR LAYOUT ESTÁTICO EN CONTENEDORES PRINCIPALES ===== */
+  div[class*="space-y"],
+  main,
+  article,
+  section {
+    overflow: visible !important;
+    position: static !important;
+    height: auto !important;
+    page-break-inside: avoid;
+  }
+
+  /* ===== OCULTAR ELEMENTOS DE NAVEGACIÓN ===== */
+  nav,
+  header,
+  footer,
+  .navbar,
+  .sidebar,
+  [class*="navbar"],
+  [class*="sidebar"],
+  [class*="navigation"] {
+    display: none !important;
+  }
+
+  /* ===== OCULTAR BOTONES Y CONTROLES ===== */
+  button,
+  .btn,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  [class*="button"] {
+    display: none !important;
+  }
+
+  /* ===== ESTILOS DE TARJETAS PARA IMPRESIÓN ===== */
+  [class*="card"],
+  [class*="Card"],
+  [class*="receipt"],
+  [class*="Receipt"],
+  div[class*="rounded-xl"] {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    page-break-inside: avoid;
+    margin-bottom: 0.5in;
+  }
+
+  /* ===== ASEGURAR VISIBILIDAD DE TEXTO ===== */
+  * {
+    background-image: none !important;
+    color: #000 !important;
+  }
+
+  /* ===== DARK MODE - RESETEAR A COLORES CLAROS ===== */
+  [class*="dark"]:not([class*="dark\:"]) {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* ===== TABLAS Y GRILLAS ===== */
+  table {
+    border-collapse: collapse;
+    page-break-inside: avoid;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* ===== MÁRGENES Y ESPACIADO ===== */
+  p {
+    margin-bottom: 0.5rem;
+    page-break-inside: avoid;
+  }
+
+  /* ===== FUENTES ===== */
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+    font-family: Arial, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+/* ===== ESTILOS DE IMPRESIÓN ESPECÍFICOS PARA RECIBOS ===== */
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:overflow-visible {
+    overflow: visible !important;
+  }
+
+  .print\:static {
+    position: static !important;
+  }
+
+  .print\:h-auto {
+    height: auto !important;
+  }
+
+  .print\:space-y-0 > * + * {
+    margin-top: 0 !important;
+  }
+
+  /* Asegurar que los recibos se impriman correctamente */
+  [class*="billing"],
+  [class*="receipt"],
+  [class*="invoice"] {
+    background: white !important;
+    color: #000 !important;
+    page-break-inside: avoid;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
