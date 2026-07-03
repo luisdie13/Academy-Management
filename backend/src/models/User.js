@@ -121,7 +121,11 @@ export class User {
    * @returns {Promise<Object>} Updated user
    */
    static async update(userId, updates) {
-     const allowedFields = ['first_name', 'last_name', 'phone', 'status', 'password_hash', 'must_change_password'];
+     const allowedFields = [
+       'first_name', 'last_name', 'phone', 'status', 'password_hash', 'must_change_password',
+       'birthday', 'dpi', 'department', 'municipality',
+       'guardian_name', 'guardian_phone', 'guardian_email', 'guardian_relationship',
+     ];
      const fields = [];
      const values = [];
      let paramCount = 1;
@@ -144,7 +148,8 @@ export class User {
       UPDATE users
       SET ${fields.join(', ')}
       WHERE id = $${paramCount} AND is_active = true
-      RETURNING id, email, first_name, last_name, role, status, is_active, created_at, updated_at, must_change_password, phone
+      RETURNING id, email, first_name, last_name, role, status, is_active, created_at, updated_at, must_change_password, phone,
+        birthday, dpi, department, municipality, guardian_name, guardian_phone, guardian_email, guardian_relationship
     `;
 
     const result = await query(text, values);

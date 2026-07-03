@@ -118,7 +118,13 @@ export const getClassAttendanceCalendar = async (req, res, next) => {
       data: {
         classId: parseInt(classId),
         month,
-        markedDates: dates.map(r => r.class_date)
+        markedDates: dates.map(r => ({
+          date: r.class_date instanceof Date
+            ? r.class_date.toISOString().split('T')[0]
+            : String(r.class_date).split(/[T ]/)[0],
+          presentCount: parseInt(r.present_count) || 0,
+          absentCount: parseInt(r.absent_count) || 0,
+        }))
       }
     });
   } catch (error) {

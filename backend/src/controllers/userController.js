@@ -98,6 +98,8 @@ export const getStudents = async (req, res, next) => {
       SELECT
         u.id, u.email, u.first_name, u.last_name, u.phone, u.status,
         u.is_active, u.created_at, u.must_change_password,
+        u.birthday, u.dpi, u.department, u.municipality,
+        u.guardian_name, u.guardian_phone, u.guardian_email, u.guardian_relationship,
         sc.payment_mode, sc.price_per_class, sc.monthly_fixed_amount
       FROM users u
       INNER JOIN student_admin_association saa ON u.id = saa.student_id AND saa.admin_id = $1
@@ -128,6 +130,18 @@ export const getStudents = async (req, res, next) => {
         isActive: student.is_active,
         createdAt: student.created_at,
         mustChangePassword: student.must_change_password,
+        birthday: student.birthday
+          ? (student.birthday instanceof Date
+              ? student.birthday.toISOString().split('T')[0]
+              : String(student.birthday).split('T')[0])
+          : null,
+        dpi: student.dpi || null,
+        department: student.department || null,
+        municipality: student.municipality || null,
+        guardianName: student.guardian_name || null,
+        guardianPhone: student.guardian_phone || null,
+        guardianEmail: student.guardian_email || null,
+        guardianRelationship: student.guardian_relationship || null,
         paymentMode: student.payment_mode || 'postpaid',
         classPrice: student.price_per_class || 0,
         monthlyFixedAmount: student.monthly_fixed_amount || null
@@ -190,8 +204,12 @@ export const createStudent = async (req, res, next) => {
       const result = await transaction(async (client) => {
         // Admin-created accounts require a password change on first login
         const userText = `
-          INSERT INTO users (email, password_hash, first_name, last_name, role, status, phone, must_change_password)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          INSERT INTO users (
+            email, password_hash, first_name, last_name, role, status, phone, must_change_password,
+            birthday, dpi, department, municipality,
+            guardian_name, guardian_phone, guardian_email, guardian_relationship
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
           RETURNING id, email, first_name, last_name, role, status, phone, must_change_password, is_active, created_at, updated_at
         `;
         const userResult = await client.query(userText, [
@@ -202,7 +220,15 @@ export const createStudent = async (req, res, next) => {
           'student',
           validated.status || 'active',
           validated.phone || null,
-          true
+          true,
+          validated.birthday || null,
+          validated.dpi || null,
+          validated.department || null,
+          validated.municipality || null,
+          validated.guardianName || null,
+          validated.guardianPhone || null,
+          validated.guardianEmail || null,
+          validated.guardianRelationship || null,
         ]);
         const newStudent = userResult.rows[0];
 
@@ -416,22 +442,28 @@ export const updateStudent = async (req, res, next) => {
       });
     }
 
-    // Separate user fields from config fields
+    // Separate user fields from config fields using explicit maps to avoid wrong snake_case
     const userFields = {};
     const configFields = {};
 
-    const userFieldNames = ['firstName', 'lastName', 'phone', 'status', 'password', 'mustChangePassword'];
-    const configFieldNames = ['paymentMode', 'classPrice', 'monthlyFixedAmount'];
+    const USER_FIELD_MAP = {
+      firstName: 'first_name', lastName: 'last_name', phone: 'phone', status: 'status',
+      password: 'password', mustChangePassword: 'must_change_password',
+      birthday: 'birthday', dpi: 'dpi', department: 'department', municipality: 'municipality',
+      guardianName: 'guardian_name', guardianPhone: 'guardian_phone',
+      guardianEmail: 'guardian_email', guardianRelationship: 'guardian_relationship',
+    };
+    const CONFIG_FIELD_MAP = {
+      paymentMode: 'payment_mode',
+      classPrice: 'price_per_class',
+      monthlyFixedAmount: 'monthly_fixed_amount',
+    };
 
     for (const [key, value] of Object.entries(validated)) {
-      if (userFieldNames.includes(key)) {
-        // Convert camelCase to snake_case for DB
-        const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-        userFields[dbKey] = value;
-      } else if (configFieldNames.includes(key)) {
-        // Convert camelCase to snake_case for DB
-        const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-        configFields[dbKey] = value;
+      if (USER_FIELD_MAP[key] !== undefined) {
+        userFields[USER_FIELD_MAP[key]] = value;
+      } else if (CONFIG_FIELD_MAP[key] !== undefined) {
+        configFields[CONFIG_FIELD_MAP[key]] = value;
       }
     }
 

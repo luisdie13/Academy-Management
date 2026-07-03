@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import api from '../services/api'
 
 const DAYS_LABEL = { monday: 'Lun', tuesday: 'Mar', wednesday: 'Mié', thursday: 'Jue', friday: 'Vie', saturday: 'Sáb' }
@@ -28,11 +28,13 @@ function monthStr(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
-// Mini calendar component showing marked attendance days
-function AttendanceCalendar({ year, month, markedDates, selectedDate, onSelectDate }) {
+const DOW_MAP = [null, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+// Mini calendar: blue bg = scheduled day of week, green dot = present records, red dot = absent records
+function AttendanceCalendar({ year, month, markedDates, selectedDate, onSelectDate, scheduledDaysOfWeek = [] }) {
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
-  const startDow = firstDay.getDay() // 0=Sun
+  const startDow = firstDay.getDay()
   const today = todayStr()
 
   const cells = []
@@ -54,21 +56,31 @@ function AttendanceCalendar({ year, month, markedDates, selectedDate, onSelectDa
           if (!dateStr) return <div key={`e-${i}`} />
           const isToday = dateStr === today
           const isSelected = dateStr === selectedDate
-          const hasRecords = markedDates.includes(dateStr)
+          const dow = new Date(dateStr + 'T00:00:00').getDay()
+          const isScheduledDay = DOW_MAP[dow] && scheduledDaysOfWeek.includes(DOW_MAP[dow])
+          const record = markedDates.find(r => r.date === dateStr)
+          const hasPresent = record && record.presentCount > 0
+          const hasAbsent = record && record.absentCount > 0
+
+          let cls = 'relative h-8 w-full rounded-lg text-xs font-medium transition-all '
+          if (isSelected) {
+            cls += 'bg-primary-600 text-white shadow-md'
+          } else if (isScheduledDay) {
+            cls += 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+            if (isToday) cls += ' ring-2 ring-primary-400'
+          } else {
+            cls += 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+            if (isToday) cls += ' ring-2 ring-primary-400'
+          }
+
           return (
-            <button
-              key={dateStr}
-              onClick={() => onSelectDate(dateStr)}
-              className={`
-                relative h-8 w-full rounded-lg text-xs font-medium transition-all
-                ${isSelected ? 'bg-primary-600 text-white shadow-md' : ''}
-                ${!isSelected && isToday ? 'ring-2 ring-primary-400 text-primary-700 dark:text-primary-300' : ''}
-                ${!isSelected && !isToday ? 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300' : ''}
-              `}
-            >
+            <button key={dateStr} onClick={() => onSelectDate(dateStr)} className={cls}>
               {dateStr.split('-')[2].replace(/^0/, '')}
-              {hasRecords && !isSelected && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-green-500" />
+              {!isSelected && (hasPresent || hasAbsent) && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5">
+                  {hasPresent && <span className="w-1 h-1 rounded-full bg-green-500 inline-block" />}
+                  {hasAbsent && <span className="w-1 h-1 rounded-full bg-red-500 inline-block" />}
+                </span>
               )}
             </button>
           )
@@ -241,10 +253,11 @@ function ClassesPage() {
   const fetchMarkedDates = async (classId, month) => {
     try {
       const response = await api.get(`/attendance/class/${classId}/calendar?month=${month}`)
-      const dates = (response.data?.data?.markedDates || []).map(d =>
-        typeof d === 'string' ? d.split('T')[0] : d
-      )
-      setMarkedDates(dates)
+      const raw = response.data?.data?.markedDates || []
+      setMarkedDates(raw.map(r => typeof r === 'string'
+        ? { date: r.split(/[T ]/)[0], presentCount: 0, absentCount: 0 }
+        : { date: (r.date || '').split(/[T ]/)[0], presentCount: r.presentCount || 0, absentCount: r.absentCount || 0 }
+      ))
     } catch {
       setMarkedDates([])
     }
@@ -372,6 +385,14 @@ function ClassesPage() {
     const dayMap = [null, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
     return days.includes(dayMap[dow])
   }
+
+  const scheduledDaysOfWeek = useMemo(() => {
+    const set = new Set()
+    Object.values(studentSchedules).forEach(days => {
+      if (Array.isArray(days)) days.forEach(d => set.add(d))
+    })
+    return Array.from(set)
+  }, [studentSchedules])
 
   const activeClasses = classes.filter(c => c.isActive)
 
@@ -504,10 +525,13 @@ function ClassesPage() {
                           markedDates={markedDates}
                           selectedDate={selectedDate}
                           onSelectDate={handleSelectDate}
+                          scheduledDaysOfWeek={scheduledDaysOfWeek}
                         />
-                        <p className="mt-2 text-xs text-gray-400 dark:text-gray-500 text-center">
-                          • Días con registro de asistencia
-                        </p>
+                        <div className="mt-2 space-y-0.5 text-xs text-gray-400 dark:text-gray-500">
+                          <p><span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5 align-middle" />Día con presentes</p>
+                          <p><span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1.5 align-middle" />Día con ausentes</p>
+                          <p><span className="inline-block w-2 h-2 rounded bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 mr-1.5 align-middle" />Día programado</p>
+                        </div>
                       </div>
 
                       {/* Right: Attendance table */}
