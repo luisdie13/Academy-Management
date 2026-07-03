@@ -61,7 +61,10 @@ export class User {
    */
   static async findByEmail(email) {
     const text = `
-      SELECT id, email, password_hash, first_name, last_name, role, status, is_active, created_at
+      SELECT id, email, password_hash, first_name, last_name, role, status, is_active, created_at,
+             must_change_password, phone,
+             birthday, dpi, department, municipality,
+             guardian_name, guardian_phone, guardian_email, guardian_relationship
       FROM users
       WHERE email = $1 AND is_active = true
     `;

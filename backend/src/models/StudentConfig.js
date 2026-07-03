@@ -18,16 +18,17 @@ export class StudentConfig {
       paymentMode = 'postpaid',
       pricePerClass = 0,
       monthlyFixedAmount = null,
-      creditBalance = 0.00
+      creditBalance = 0.00,
+      classModality = null,
     } = configData;
 
     const text = `
-      INSERT INTO student_config (student_id, payment_mode, price_per_class, monthly_fixed_amount, credit_balance)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, student_id, payment_mode, price_per_class, monthly_fixed_amount, credit_balance, created_at, updated_at
+      INSERT INTO student_config (student_id, payment_mode, price_per_class, monthly_fixed_amount, credit_balance, class_modality)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, student_id, payment_mode, price_per_class, monthly_fixed_amount, credit_balance, class_modality, created_at, updated_at
     `;
 
-    const result = await query(text, [studentId, paymentMode, pricePerClass, monthlyFixedAmount, creditBalance]);
+    const result = await query(text, [studentId, paymentMode, pricePerClass, monthlyFixedAmount, creditBalance, classModality]);
     return result.rows[0];
   }
 
@@ -38,7 +39,7 @@ export class StudentConfig {
    */
   static async findByStudentId(studentId) {
     const text = `
-      SELECT id, student_id, payment_mode, price_per_class, monthly_fixed_amount, credit_balance, created_at, updated_at
+      SELECT id, student_id, payment_mode, price_per_class, monthly_fixed_amount, credit_balance, class_modality, created_at, updated_at
       FROM student_config
       WHERE student_id = $1
     `;
@@ -54,7 +55,7 @@ export class StudentConfig {
    * @returns {Promise<Object>} Updated config
    */
   static async update(studentId, updates) {
-        const allowedFields = ['payment_mode', 'price_per_class', 'monthly_fixed_amount', 'credit_balance'];
+        const allowedFields = ['payment_mode', 'price_per_class', 'monthly_fixed_amount', 'credit_balance', 'class_modality'];
     const fields = [];
     const values = [];
     let paramCount = 1;
@@ -87,7 +88,7 @@ export class StudentConfig {
       UPDATE student_config
       SET ${fields.join(', ')}
       WHERE student_id = $${paramCount}
-      RETURNING id, student_id, payment_mode, price_per_class, monthly_fixed_amount, credit_balance, created_at, updated_at
+      RETURNING id, student_id, payment_mode, price_per_class, monthly_fixed_amount, credit_balance, class_modality, created_at, updated_at
     `;
 
     const result = await query(text, values);

@@ -1,35 +1,39 @@
 import PaymentMethod from '../models/PaymentMethod.js';
-
-/**
- * Payment Method Controller
- * Handles HTTP requests for payment method management
- */
+import AcademySettings from '../models/AcademySettings.js';
+import { queryOne } from '../config/database.js';
 
 /**
  * GET /api/settings/payment-methods
- * Get all active payment methods for the academy (public for students)
+ * Admins: returns their own methods.
+ * Students: auto-resolves their associated admin's methods.
  */
 export const getPaymentMethods = async (req, res, next) => {
   try {
-    // Get academy admin ID from query or from authenticated user
-    let adminId = req.query.adminId;
+    let adminId = req.query.adminId ? parseInt(req.query.adminId) : null;
 
-    // If not provided in query, use authenticated user's admin ID
-    if (!adminId && req.user) {
-      adminId = req.user.id;
+    if (!adminId) {
+      if (req.user.role === 'admin') {
+        adminId = req.user.id;
+      } else {
+        // Student: resolve from association
+        const assoc = await queryOne(
+          'SELECT admin_id FROM student_admin_association WHERE student_id = $1 LIMIT 1',
+          [req.user.id]
+        );
+        adminId = assoc?.admin_id || null;
+      }
     }
 
     if (!adminId) {
       return res.status(400).json({
-        error: {
-          message: 'Admin ID is required',
-          statusCode: 400,
-          timestamp: new Date().toISOString()
-        }
+        error: { message: 'No associated academy found', statusCode: 400, timestamp: new Date().toISOString() }
       });
     }
 
-    const methods = await PaymentMethod.getByAdmin(parseInt(adminId), true);
+    const [methods, settings] = await Promise.all([
+      PaymentMethod.getByAdmin(adminId, true),
+      AcademySettings.findByAdminId(adminId),
+    ]);
 
     res.status(200).json({
       data: methods.map(method => ({
@@ -43,16 +47,18 @@ export const getPaymentMethods = async (req, res, next) => {
         isActive: method.is_active,
         createdAt: method.created_at,
         updatedAt: method.updated_at
-      }))
+      })),
+      academyInfo: {
+        name: settings?.name || null,
+        contactPhone: settings?.contact_phone || null,
+        contactEmail: settings?.contact_email || null,
+        bankAccountInfo: settings?.bank_account_info || null,
+      },
     });
   } catch (error) {
     console.error('Error fetching payment methods:', error);
     res.status(500).json({
-      error: {
-        message: 'Failed to fetch payment methods',
-        statusCode: 500,
-        timestamp: new Date().toISOString()
-      }
+      error: { message: 'Failed to fetch payment methods', statusCode: 500, timestamp: new Date().toISOString() }
     });
   }
 };

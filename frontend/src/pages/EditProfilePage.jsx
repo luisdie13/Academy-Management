@@ -8,6 +8,7 @@ function EditProfilePage() {
   const { user, logout, setUser } = useAuthStore()
 
   const [formData, setFormData] = useState({
+    email: '',
     firstName: '',
     lastName: '',
     phone: '',
@@ -21,6 +22,7 @@ function EditProfilePage() {
     guardianPhone: '',
     guardianEmail: '',
     guardianRelationship: '',
+    classModality: '',
   })
 
   const [loading, setLoading] = useState(true)
@@ -38,12 +40,13 @@ function EditProfilePage() {
   useEffect(() => {
     if (user) {
       setFormData({
+        email: user.email || '',
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         phone: user.phone || '',
         newPassword: '',
         confirmPassword: '',
-        birthday: user.birthday ? user.birthday.split('T')[0] : '',
+        birthday: user.birthday ? String(user.birthday).split('T')[0] : '',
         dpi: user.dpi || '',
         department: user.department || '',
         municipality: user.municipality || '',
@@ -51,6 +54,7 @@ function EditProfilePage() {
         guardianPhone: user.guardianPhone || '',
         guardianEmail: user.guardianEmail || '',
         guardianRelationship: user.guardianRelationship || '',
+        classModality: user.classModality || '',
       })
       setLoading(false)
     } else {
@@ -109,6 +113,8 @@ function EditProfilePage() {
   }
 
   const validateForm = () => {
+    if (!formData.email.trim()) { setError('Email is required'); return false }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) { setError('Please enter a valid email address'); return false }
     if (!formData.firstName.trim()) { setError('First name is required'); return false }
     if (!formData.lastName.trim()) { setError('Last name is required'); return false }
 
@@ -140,6 +146,7 @@ function EditProfilePage() {
     setSubmitting(true)
     try {
       const payload = {
+        email: formData.email.trim(),
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         phone: formData.phone.trim() || null,
@@ -151,6 +158,7 @@ function EditProfilePage() {
         guardianPhone: formData.guardianPhone.trim() || null,
         guardianEmail: formData.guardianEmail.trim() || null,
         guardianRelationship: formData.guardianRelationship || null,
+        classModality: formData.classModality || null,
       }
 
       if (formData.newPassword) {
@@ -313,11 +321,23 @@ function EditProfilePage() {
                   </div>
                 )}
 
-                {/* Email read-only */}
-                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
-                  <p className="text-gray-900 dark:text-white font-semibold">{user?.email}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Email cannot be changed</p>
+                {/* Class Modality */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Modalidad de clases (Opcional)</label>
+                  <select name="classModality" value={formData.classModality} onChange={handleChange}
+                    className={inputClass} disabled={submitting}>
+                    <option value="">Seleccionar modalidad</option>
+                    <option value="in_person">En la academia (presencial)</option>
+                    <option value="virtual">Virtual (en línea)</option>
+                    <option value="residential">Residencial (a domicilio)</option>
+                  </select>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email *</label>
+                  <input type="email" name="email" value={formData.email}
+                    onChange={handleChange} placeholder="you@example.com"
+                    className={inputClass} disabled={submitting} />
                 </div>
               </div>
 

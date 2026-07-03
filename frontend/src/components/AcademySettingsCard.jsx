@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '../stores/authStore'
 import api from '../services/api'
+import { useTheme } from '../context/ThemeContext'
+import { applyPalette } from '../utils/colorPalette'
 
 function AcademySettingsCard() {
   const { user } = useAuthStore()
+  const { updateTheme } = useTheme()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -20,6 +23,19 @@ function AcademySettingsCard() {
   useEffect(() => {
     fetchAcademySettings()
   }, [])
+
+  // Live preview: apply palette while editing so admin sees changes instantly
+  useEffect(() => {
+    if (!editing) return
+    if (/^#[0-9a-fA-F]{6}$/.test(formData.primary_color)) {
+      applyPalette(formData.primary_color)
+    }
+  }, [formData.primary_color, editing])
+
+  useEffect(() => {
+    if (!editing) return
+    document.documentElement.style.setProperty('--secondary-color', formData.secondary_color)
+  }, [formData.secondary_color, editing])
 
   const fetchAcademySettings = async () => {
     try {
@@ -82,6 +98,7 @@ function AcademySettingsCard() {
 
       if (response.data?.data) {
         setSettings(response.data.data)
+        updateTheme(formData.primary_color, formData.secondary_color)
         setSuccess('Academy settings updated successfully')
         setEditing(false)
         setTimeout(() => setSuccess(null), 3000)
@@ -100,11 +117,14 @@ function AcademySettingsCard() {
   const handleCancel = () => {
     setEditing(false)
     if (settings) {
+      const savedPrimary = settings.primary_color || '#0284c7'
+      const savedSecondary = settings.secondary_color || '#10B981'
+      updateTheme(savedPrimary, savedSecondary)
       setFormData({
         name: settings.name || '',
         subdomain: settings.subdomain || '',
-        primary_color: settings.primary_color || '#3B82F6',
-        secondary_color: settings.secondary_color || '#10B981'
+        primary_color: savedPrimary,
+        secondary_color: savedSecondary,
       })
     }
   }

@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
+const DOW_TO_JS = {
+  sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+  thursday: 4, friday: 5, saturday: 6,
+}
+
 function StudentCalendar({
   attendanceData = [],
+  scheduledDaysOfWeek = [],
   onDateClick = null
 }) {
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -14,11 +20,16 @@ function StudentCalendar({
   const daysInMonth = lastDay.getDate()
   const startingDayOfWeek = firstDay.getDay()
 
+  // Avoid timezone shifts: treat date strings as local by splitting on T or space
   const attendanceMap = {}
   attendanceData.forEach(item => {
-    const dateStr = new Date(item.date).toISOString().split('T')[0]
+    const dateStr = String(item.date).split(/[T ]/)[0]
     attendanceMap[dateStr] = item.status
   })
+
+  const scheduledJsDays = new Set(
+    scheduledDaysOfWeek.map(d => DOW_TO_JS[d]).filter(n => n !== undefined)
+  )
 
   const calendarDays = []
   for (let i = 0; i < startingDayOfWeek; i++) {
@@ -43,11 +54,13 @@ function StudentCalendar({
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const today = new Date()
     const dayDate = new Date(year, month, day)
+    const jsDay = dayDate.getDay()
     return {
       dateStr,
       status: attendanceMap[dateStr],
       isToday: dayDate.toDateString() === today.toDateString(),
-      isPast: dayDate < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      isPast: dayDate < new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+      isScheduled: scheduledJsDays.has(jsDay),
     }
   }
 
@@ -100,41 +113,58 @@ function StudentCalendar({
               )
             }
 
-            // Support both backend values (present/absent) and legacy (attended/scheduled)
             const status = dayInfo.status
             const isPresent = status === 'present' || status === 'attended'
             const isAbsent = status === 'absent'
             const isToday = dayInfo.isToday
             const isPast = dayInfo.isPast
+            const isScheduled = dayInfo.isScheduled
 
-            let dayClasses =
-              'aspect-square rounded-lg flex items-center justify-center font-semibold text-sm cursor-pointer transition-all '
-
-            if (isPresent && isPast) {
-              dayClasses +=
-                'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-2 border-green-400 dark:border-green-600 hover:shadow-md'
-            } else if (isAbsent && isPast) {
-              dayClasses +=
-                'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-2 border-red-400 dark:border-red-600 hover:shadow-md'
+            // Build fill style (background + text color)
+            let fillCls = ''
+            if (isPresent) {
+              fillCls = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:shadow-md'
+            } else if (isAbsent) {
+              fillCls = 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:shadow-md'
             } else if (isToday) {
-              dayClasses +=
-                'bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 border-2 border-primary-500 dark:border-primary-500 font-bold'
+              fillCls = 'bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-bold'
+            } else if (isScheduled) {
+              fillCls = 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
             } else {
-              dayClasses +=
-                'bg-gray-50 dark:bg-gray-700/30 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+              fillCls = 'bg-gray-50 dark:bg-gray-700/30 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
             }
+
+            // Border: today always gets the primary ring so it's always visible
+            let borderCls = ''
+            if (isToday) {
+              borderCls = 'border-2 border-primary-500 dark:border-primary-400'
+            } else if (isPresent) {
+              borderCls = 'border-2 border-green-400 dark:border-green-600'
+            } else if (isAbsent) {
+              borderCls = 'border-2 border-red-400 dark:border-red-600'
+            } else if (isScheduled) {
+              borderCls = 'border border-blue-200 dark:border-blue-700'
+            } else {
+              borderCls = 'border border-gray-200 dark:border-gray-600'
+            }
+
+            const dayClasses =
+              'aspect-square rounded-lg flex items-center justify-center font-semibold text-sm cursor-pointer transition-all ' +
+              fillCls + ' ' + borderCls
+
+            const titleLabel = isPresent ? 'Presente' : isAbsent ? 'Ausente' : isScheduled ? 'Día de clase' : 'Sin registro'
 
             return (
               <button
                 key={dayInfo.dateStr}
                 onClick={() => onDateClick && onDateClick(dayInfo.dateStr, status)}
                 className={dayClasses}
-                title={`${day} — ${status || 'Sin registro'}`}
+                title={`${day} — ${titleLabel}`}
               >
                 <div className="flex flex-col items-center">
                   <span>{day}</span>
-                  {isPresent && isPast && <span className="text-xs mt-0.5">✓</span>}
-                  {isAbsent && isPast && <span className="text-xs mt-0.5">✗</span>}
+                  {isPresent && <span className="text-xs mt-0.5">✓</span>}
+                  {isAbsent && <span className="text-xs mt-0.5">✗</span>}
                 </div>
               </button>
             )
@@ -152,6 +182,10 @@ function StudentCalendar({
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-red-100 dark:bg-red-900/30 border-2 border-red-400 dark:border-red-600"></div>
             <span className="text-gray-700 dark:text-gray-300">Ausente</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700"></div>
+            <span className="text-gray-700 dark:text-gray-300">Día de clase</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-primary-100 dark:bg-primary-900/20 border-2 border-primary-500 dark:border-primary-500"></div>

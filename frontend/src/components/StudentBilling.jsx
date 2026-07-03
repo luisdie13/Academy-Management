@@ -36,6 +36,61 @@ function StatusBadge({ status }) {
   )
 }
 
+export function PaymentInfoPanel({ paymentMethods, academyInfo }) {
+  if (!paymentMethods?.length && !academyInfo?.contactPhone && !academyInfo?.contactEmail) return null
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-gray-50 dark:bg-gray-700/50 px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-base font-bold text-gray-900 dark:text-white">💳 Cómo realizar tu pago</h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          Deposita a cualquiera de los siguientes métodos y contacta a la academia para confirmar.
+        </p>
+      </div>
+      <div className="p-5 space-y-4">
+        {(academyInfo?.contactPhone || academyInfo?.contactEmail) && (
+          <div className="flex flex-wrap gap-3">
+            {academyInfo.contactPhone && (
+              <a href={`tel:${academyInfo.contactPhone}`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-800 dark:text-green-300 font-medium hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors">
+                📞 {academyInfo.contactPhone}
+              </a>
+            )}
+            {academyInfo.contactEmail && (
+              <a href={`mailto:${academyInfo.contactEmail}`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-800 dark:text-blue-300 font-medium hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                ✉️ {academyInfo.contactEmail}
+              </a>
+            )}
+          </div>
+        )}
+        {paymentMethods?.length > 0 && (
+          <div className="space-y-3">
+            {paymentMethods.map(m => (
+              <div key={m.id} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gray-50 dark:bg-gray-700/30">
+                <p className="font-bold text-gray-900 dark:text-white text-sm mb-1">{m.methodName}</p>
+                {m.bankName && <p className="text-xs text-gray-500 dark:text-gray-400">{m.bankName}</p>}
+                {m.accountHolder && (
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                    <span className="text-gray-500 dark:text-gray-400">Titular: </span>{m.accountHolder}
+                  </p>
+                )}
+                {m.accountNumber && (
+                  <p className="text-sm font-mono text-gray-900 dark:text-white mt-0.5 tracking-wide">{m.accountNumber}</p>
+                )}
+                {m.additionalInfo && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 border-t border-gray-200 dark:border-gray-600 pt-2">
+                    {m.additionalInfo}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function monthLabel(invoiceMonth) {
   if (!invoiceMonth) return '—'
   const [y, m] = invoiceMonth.split('-').map(Number)
@@ -50,16 +105,23 @@ function monthLabel(invoiceMonth) {
  *   creditBalance: number (prepaid student's accumulated credit)
  *   classPrice: number (postpaid: price per class)
  *   onDownloadInvoice: fn(invoiceId) — opens PDF endpoint
+ *   paymentMethods: array of payment method objects (optional)
+ *   academyInfo: { name, contactPhone, contactEmail, bankAccountInfo } (optional)
  */
-function StudentBilling({ billingMode = 'postpaid', invoices = [], creditBalance = 0, classPrice = 0, onDownloadInvoice }) {
+function StudentBilling({ billingMode = 'postpaid', invoices = [], creditBalance = 0, classPrice = 0, onDownloadInvoice, paymentMethods = [], academyInfo = null }) {
   if (!invoices || invoices.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700 text-center">
-        <p className="text-4xl mb-3">📋</p>
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">Sin facturas aún</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Las facturas se generan mensualmente por la academia. Vuelve aquí a fin de mes para ver tu estado de cuenta.
-        </p>
+      <div className="space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700 text-center">
+          <p className="text-4xl mb-3">📋</p>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">Sin facturas aún</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Las facturas se generan mensualmente por la academia. Vuelve aquí a fin de mes para ver tu estado de cuenta.
+          </p>
+        </div>
+        {(paymentMethods.length > 0 || academyInfo?.contactPhone || academyInfo?.contactEmail) && (
+          <PaymentInfoPanel paymentMethods={paymentMethods} academyInfo={academyInfo} />
+        )}
       </div>
     )
   }
@@ -70,6 +132,8 @@ function StudentBilling({ billingMode = 'postpaid', invoices = [], creditBalance
 
   return (
     <div className="space-y-6">
+      <PaymentInfoPanel paymentMethods={paymentMethods} academyInfo={academyInfo} />
+
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
@@ -205,6 +269,7 @@ function StudentBilling({ billingMode = 'postpaid', invoices = [], creditBalance
             : 'Solo pagas las clases a las que asististe. El monto se calcula al finalizar cada mes.'}
         </p>
       </div>
+
     </div>
   )
 }

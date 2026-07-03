@@ -113,7 +113,8 @@ export const getClasses = async (req, res, next) => {
       result = await queryAll(text, [userId]);
     } else {
       const text = `
-        SELECT c.id, c.admin_id, c.title, c.description, c.instructor, c.is_active, c.created_at
+        SELECT c.id, c.admin_id, c.title, c.description, c.instructor, c.is_active, c.created_at,
+               ci.days_of_week
         FROM classes c
         INNER JOIN class_inscriptions ci ON c.id = ci.class_id
         WHERE ci.student_id = $1
@@ -121,6 +122,14 @@ export const getClasses = async (req, res, next) => {
       `;
       result = await queryAll(text, [userId]);
     }
+
+    const parsePgArray = (val) => {
+      if (Array.isArray(val)) return val;
+      if (!val || typeof val !== 'string') return [];
+      const s = val.trim();
+      if (!s || s === '{}') return [];
+      return s.replace(/^\{|\}$/g, '').split(',').map(v => v.trim());
+    };
 
     res.status(200).json({
       data: (result || []).map(cls => ({
@@ -130,7 +139,8 @@ export const getClasses = async (req, res, next) => {
         description: cls.description,
         instructor: cls.instructor,
         isActive: cls.is_active,
-        createdAt: cls.created_at
+        createdAt: cls.created_at,
+        daysOfWeek: parsePgArray(cls.days_of_week),
       }))
     });
   } catch (error) {

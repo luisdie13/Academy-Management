@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import api from '../services/api'
 import StudentCalendar from '../components/StudentCalendar'
-import StudentBilling from '../components/StudentBilling'
+import StudentBilling, { PaymentInfoPanel } from '../components/StudentBilling'
 import AvailableClasses from '../components/AvailableClasses'
 
 function StudentDashboardPage() {
@@ -19,6 +19,8 @@ function StudentDashboardPage() {
   const [attendanceLoading, setAttendanceLoading] = useState(false)
   const [invoices, setInvoices] = useState([])
   const [invoicesLoading, setInvoicesLoading] = useState(false)
+  const [paymentMethods, setPaymentMethods] = useState([])
+  const [academyInfo, setAcademyInfo] = useState(null)
 
   // Role guard: only students may access this page
   useEffect(() => {
@@ -105,8 +107,19 @@ function StudentDashboardPage() {
       }
     }
 
+    const fetchPaymentInfo = async () => {
+      try {
+        const res = await api.get('/settings/payment-methods')
+        setPaymentMethods(res.data?.data || [])
+        setAcademyInfo(res.data?.academyInfo || null)
+      } catch {
+        // Non-critical — silently ignore
+      }
+    }
+
     fetchAttendance()
     fetchInvoices()
+    fetchPaymentInfo()
   }, [user])
 
   if (loading) {
@@ -201,6 +214,7 @@ function StudentDashboardPage() {
 
         {activeTab === 'overview' && (
           <div className="space-y-8">
+            <PaymentInfoPanel paymentMethods={paymentMethods} academyInfo={academyInfo} />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
@@ -310,12 +324,25 @@ function StudentDashboardPage() {
                   <p className="mt-4 text-gray-600 dark:text-gray-400">Loading attendance...</p>
                 </div>
               </div>
-            ) : (
-              <StudentCalendar
-                attendanceData={attendanceData}
-                onDateClick={() => {}}
-              />
-            )}
+            ) : (() => {
+                // Derive scheduled days from inscriptions (admin-configured) +
+                // from attendance history (inferred from past records).
+                const DOW_NAMES = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+                const scheduledSet = new Set(myClasses.flatMap(c => c.daysOfWeek || []))
+                attendanceData.forEach(({ date }) => {
+                  if (!date) return
+                  const ds = String(date).split(/[T ]/)[0]
+                  const jsDay = new Date(ds + 'T12:00:00').getDay()
+                  if (jsDay >= 0 && jsDay <= 6) scheduledSet.add(DOW_NAMES[jsDay])
+                })
+                return (
+                  <StudentCalendar
+                    attendanceData={attendanceData}
+                    scheduledDaysOfWeek={[...scheduledSet]}
+                    onDateClick={() => {}}
+                  />
+                )
+              })()}
           </div>
         )}
 
@@ -335,6 +362,8 @@ function StudentDashboardPage() {
                 creditBalance={user?.creditBalance || 0}
                 classPrice={user?.classPrice || 0}
                 onDownloadInvoice={(id) => window.open(`/api/invoices/${id}/pdf`, '_blank')}
+                paymentMethods={paymentMethods}
+                academyInfo={academyInfo}
               />
             )}
           </div>

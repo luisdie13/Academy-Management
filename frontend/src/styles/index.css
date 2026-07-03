@@ -3,7 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #3B82F6;
+  /* Primary shade variables — overridden at runtime by ThemeContext */
+  --p50:  240 249 255;
+  --p100: 224 242 254;
+  --p200: 186 230 253;
+  --p300: 125 211 252;
+  --p400: 56 189 248;
+  --p500: 14 165 233;
+  --p600: 2 132 199;
+  --p700: 3 105 161;
+  --p800: 7 89 133;
+  --p900: 12 61 102;
+  --primary-color: #0284c7;
   --secondary-color: #10B981;
 }
 

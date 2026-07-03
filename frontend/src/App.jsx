@@ -11,6 +11,7 @@ import ChangePasswordPage from './pages/ChangePasswordPage'
 import EditProfilePage from './pages/EditProfilePage'
 import ProtectedRoute from './components/ProtectedRoute'
 import InvoicesPage from './pages/InvoicesPage'
+import PaymentInfoPage from './pages/PaymentInfoPage'
 import './styles/print.css'
 
 function App() {
@@ -122,6 +123,15 @@ function AppContent() {
             element={
               <ProtectedRoute requiredRole="admin">
                 <InvoicesPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payment-info"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <PaymentInfoPage />
               </ProtectedRoute>
             }
           />

@@ -100,7 +100,7 @@ export const getStudents = async (req, res, next) => {
         u.is_active, u.created_at, u.must_change_password,
         u.birthday, u.dpi, u.department, u.municipality,
         u.guardian_name, u.guardian_phone, u.guardian_email, u.guardian_relationship,
-        sc.payment_mode, sc.price_per_class, sc.monthly_fixed_amount
+        sc.payment_mode, sc.price_per_class, sc.monthly_fixed_amount, sc.class_modality
       FROM users u
       INNER JOIN student_admin_association saa ON u.id = saa.student_id AND saa.admin_id = $1
       LEFT JOIN student_config sc ON u.id = sc.student_id
@@ -144,7 +144,8 @@ export const getStudents = async (req, res, next) => {
         guardianRelationship: student.guardian_relationship || null,
         paymentMode: student.payment_mode || 'postpaid',
         classPrice: student.price_per_class || 0,
-        monthlyFixedAmount: student.monthly_fixed_amount || null
+        monthlyFixedAmount: student.monthly_fixed_amount || null,
+        classModality: student.class_modality || null
       })),
       total: students.length,
       timestamp: new Date().toISOString()
@@ -234,9 +235,9 @@ export const createStudent = async (req, res, next) => {
 
         // Create student config
         const configText = `
-          INSERT INTO student_config (student_id, payment_mode, price_per_class, monthly_fixed_amount)
-          VALUES ($1, $2, $3, $4)
-          RETURNING id, student_id, payment_mode, price_per_class, monthly_fixed_amount, created_at, updated_at
+          INSERT INTO student_config (student_id, payment_mode, price_per_class, monthly_fixed_amount, class_modality)
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING id, student_id, payment_mode, price_per_class, monthly_fixed_amount, class_modality, created_at, updated_at
         `;
         const configResult = await client.query(configText, [
           newStudent.id,
@@ -244,7 +245,8 @@ export const createStudent = async (req, res, next) => {
           validated.classPrice !== undefined ? Number(validated.classPrice) : 0,
           validated.monthlyFixedAmount !== undefined && validated.monthlyFixedAmount !== null
             ? Number(validated.monthlyFixedAmount)
-            : null
+            : null,
+          validated.classModality || null,
         ]);
         const newConfig = configResult.rows[0];
 
@@ -309,6 +311,15 @@ export const createStudent = async (req, res, next) => {
     });
   } catch (error) {
     console.error('Error creating student:', error);
+    if (error.code === '23505') {
+      const constraint = error.constraint || '';
+      let message = 'An account with this information already exists';
+      if (constraint.includes('dpi')) message = 'DPI already registered by another account';
+      else if (constraint.includes('email')) message = 'Email already exists';
+      return res.status(409).json({
+        error: { message, statusCode: 409, timestamp: new Date().toISOString() }
+      });
+    }
     res.status(500).json({
       error: {
         message: 'Failed to create student',
@@ -457,6 +468,7 @@ export const updateStudent = async (req, res, next) => {
       paymentMode: 'payment_mode',
       classPrice: 'price_per_class',
       monthlyFixedAmount: 'monthly_fixed_amount',
+      classModality: 'class_modality',
     };
 
     for (const [key, value] of Object.entries(validated)) {
@@ -529,6 +541,7 @@ export const updateStudent = async (req, res, next) => {
           paymentMode: updatedConfig.payment_mode,
           classPrice: updatedConfig.price_per_class,
           monthlyFixedAmount: updatedConfig.monthly_fixed_amount,
+          classModality: updatedConfig.class_modality || null,
           createdAt: updatedConfig.created_at,
           updatedAt: updatedConfig.updated_at
         },
@@ -640,15 +653,49 @@ export const updateProfile = async (req, res, next) => {
 
     const userFields = {};
 
-    // Only allow updating these fields
-    const allowedFields = ['firstName', 'lastName', 'phone', 'password'];
+    const PROFILE_FIELD_MAP = {
+      email: 'email',
+      firstName: 'first_name',
+      lastName: 'last_name',
+      phone: 'phone',
+      password: 'password',
+      birthday: 'birthday',
+      dpi: 'dpi',
+      department: 'department',
+      municipality: 'municipality',
+      guardianName: 'guardian_name',
+      guardianPhone: 'guardian_phone',
+      guardianEmail: 'guardian_email',
+      guardianRelationship: 'guardian_relationship',
+    };
 
-    for (const [key, value] of Object.entries(validated)) {
-      if (allowedFields.includes(key) && value !== undefined && value !== null) {
-        // Convert camelCase to snake_case for DB
-        const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-        userFields[dbKey] = value;
+    for (const [key, dbKey] of Object.entries(PROFILE_FIELD_MAP)) {
+      if (validated[key] !== undefined) {
+        userFields[dbKey] = validated[key] !== null ? validated[key] : null;
       }
+    }
+
+    // classModality lives in student_config, not users — handle separately
+    let updatedClassModality = null;
+    if (validated.classModality !== undefined && user.role === 'student') {
+      const configUpdate = await StudentConfig.update(userId, { class_modality: validated.classModality || null });
+      updatedClassModality = configUpdate?.class_modality || null;
+    }
+
+    // If email is changing, ensure it isn't already taken by another user
+    if (userFields.email && userFields.email.toLowerCase() !== user.email.toLowerCase()) {
+      userFields.email = userFields.email.toLowerCase().trim();
+      const conflict = await queryOne(
+        `SELECT id FROM users WHERE email = $1 AND id != $2`,
+        [userFields.email, userId]
+      );
+      if (conflict) {
+        return res.status(409).json({
+          error: { message: 'Email already in use by another account', statusCode: 409 }
+        });
+      }
+    } else {
+      delete userFields.email;
     }
 
     if (userFields.password) {
@@ -675,7 +722,20 @@ export const updateProfile = async (req, res, next) => {
          isActive: updatedUser.is_active,
          mustChangePassword: updatedUser.must_change_password,
          createdAt: updatedUser.created_at,
-         updatedAt: updatedUser.updated_at
+         updatedAt: updatedUser.updated_at,
+         birthday: updatedUser.birthday
+           ? (updatedUser.birthday instanceof Date
+               ? updatedUser.birthday.toISOString().split('T')[0]
+               : String(updatedUser.birthday).split('T')[0])
+           : null,
+         dpi: updatedUser.dpi || null,
+         department: updatedUser.department || null,
+         municipality: updatedUser.municipality || null,
+         guardianName: updatedUser.guardian_name || null,
+         guardianPhone: updatedUser.guardian_phone || null,
+         guardianEmail: updatedUser.guardian_email || null,
+         guardianRelationship: updatedUser.guardian_relationship || null,
+         classModality: updatedClassModality,
        }
      });
   } catch (error) {

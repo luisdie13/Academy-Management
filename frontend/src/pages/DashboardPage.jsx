@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import { useSettingsStore } from '../stores/settingsStore'
+import { formatCurrency } from '../utils/currency'
 import api from '../services/api'
 import AcademySettingsCard from '../components/AcademySettingsCard'
 import {
@@ -18,6 +20,7 @@ import {
 
 function DashboardPage() {
   const { user, logout } = useAuthStore()
+  const { currency, fetchCurrency } = useSettingsStore()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -35,6 +38,10 @@ function DashboardPage() {
       navigate('/student-dashboard', { replace: true })
     }
   }, [user, navigate])
+
+  useEffect(() => {
+    fetchCurrency()
+  }, [fetchCurrency])
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -79,24 +86,19 @@ function DashboardPage() {
           pendingBilling: pendingBillingAmount,
         })
 
-        // Placeholder chart data — Phase 3 will replace with real analytics endpoints
-        setAttendanceData([
-          { name: 'Mon', attendance: 0 },
-          { name: 'Tue', attendance: 0 },
-          { name: 'Wed', attendance: 0 },
-          { name: 'Thu', attendance: 0 },
-          { name: 'Fri', attendance: 0 },
-          { name: 'Sat', attendance: 0 },
-        ])
+        try {
+          const trendRes = await api.get('/stats/attendance-trend')
+          setAttendanceData(trendRes.data?.data || [])
+        } catch (err) {
+          console.error('Error fetching attendance trend:', err)
+        }
 
-        setIncomeData([
-          { name: 'Jan', income: 0, billed: 0 },
-          { name: 'Feb', income: 0, billed: 0 },
-          { name: 'Mar', income: 0, billed: 0 },
-          { name: 'Apr', income: 0, billed: 0 },
-          { name: 'May', income: 0, billed: 0 },
-          { name: 'Jun', income: 0, billed: 0 },
-        ])
+        try {
+          const incomeRes = await api.get('/stats/monthly-income')
+          setIncomeData(incomeRes.data?.data || [])
+        } catch (err) {
+          console.error('Error fetching monthly income:', err)
+        }
       } catch (err) {
         console.error('Error fetching dashboard data:', err)
         setError('Failed to load dashboard data')
@@ -181,7 +183,7 @@ function DashboardPage() {
               <span className="text-3xl">💰</span>
             </div>
             <p className="text-4xl font-bold text-orange-600 dark:text-orange-400">
-              ${metrics.pendingBilling.toLocaleString()}
+              {formatCurrency(metrics.pendingBilling, currency)}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
               To collect
@@ -249,7 +251,7 @@ function DashboardPage() {
           <AcademySettingsCard />
         </div>
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             to="/students"
             className="block p-6 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-xl border-2 border-primary-200 dark:border-primary-800 hover:shadow-lg transition-all"
@@ -283,6 +285,18 @@ function DashboardPage() {
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Manage invoices and payments
+            </p>
+          </Link>
+
+          <Link
+            to="/payment-info"
+            className="block p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border-2 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all"
+          >
+            <h3 className="text-lg font-semibold text-purple-600 dark:text-purple-400 mb-2">
+              Métodos de Pago
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Contacto y cuentas para cobros
             </p>
           </Link>
         </div>

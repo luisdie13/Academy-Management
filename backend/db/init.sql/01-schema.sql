@@ -80,6 +80,8 @@ CREATE INDEX IF NOT EXISTS idx_academy_settings_is_active ON academy_settings(is
 
 -- Link each academy to its owning admin (idempotent)
 ALTER TABLE academy_settings ADD COLUMN IF NOT EXISTS admin_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
+-- Currency preference per academy (idempotent)
+ALTER TABLE academy_settings ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'GTQ';
 CREATE INDEX IF NOT EXISTS idx_academy_settings_admin_id ON academy_settings(admin_id);
 
 -- Backfill for single-admin deployments where the association was never stored
@@ -369,3 +371,8 @@ CREATE OR REPLACE TRIGGER update_transactions_updated_at
 
 CREATE OR REPLACE TRIGGER update_payment_methods_updated_at
   BEFORE UPDATE ON payment_methods FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================
+-- CLASS MODALITY: Idempotent migration
+-- ============================================================
+ALTER TABLE student_config ADD COLUMN IF NOT EXISTS class_modality modality_type;

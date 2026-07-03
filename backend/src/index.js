@@ -16,6 +16,7 @@ import invoiceRoutes from './routes/invoiceRoutes.js';
 import geolocationRoutes from './routes/geolocationRoutes.js';
 import enrollRoutes from './routes/enrollRoutes.js';
 import academiesRoutes from './routes/academiesRoutes.js';
+import statsRoutes from './routes/statsRoutes.js';
 
 if (process.env.NODE_ENV !== 'docker' && !process.env.API_PORT) {
   dotenv.config();
@@ -88,6 +89,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/geolocation', geolocationRoutes);
 app.use('/api/enroll', enrollRoutes);
 app.use('/api/academies', academiesRoutes); // public routes (no auth)
+app.use('/api/stats', statsRoutes);
 
 // ============================================
 // ERROR HANDLING MIDDLEWARE

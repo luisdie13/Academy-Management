@@ -31,7 +31,8 @@ function monthStr(date) {
 const DOW_MAP = [null, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
 // Mini calendar: blue bg = scheduled day of week, green dot = present records, red dot = absent records
-function AttendanceCalendar({ year, month, markedDates, selectedDate, onSelectDate, scheduledDaysOfWeek = [] }) {
+// When studentData is provided (object), switches to per-student mode using studentDays for blue cells.
+function AttendanceCalendar({ year, month, markedDates, selectedDate, onSelectDate, scheduledDaysOfWeek = [], studentData = null, studentDays = [] }) {
   const firstDay = new Date(year, month, 1)
   const lastDay = new Date(year, month + 1, 0)
   const startDow = firstDay.getDay()
@@ -57,10 +58,21 @@ function AttendanceCalendar({ year, month, markedDates, selectedDate, onSelectDa
           const isToday = dateStr === today
           const isSelected = dateStr === selectedDate
           const dow = new Date(dateStr + 'T00:00:00').getDay()
-          const isScheduledDay = DOW_MAP[dow] && scheduledDaysOfWeek.includes(DOW_MAP[dow])
-          const record = markedDates.find(r => r.date === dateStr)
-          const hasPresent = record && record.presentCount > 0
-          const hasAbsent = record && record.absentCount > 0
+
+          let isScheduledDay, hasPresent, hasAbsent
+          if (studentData !== null) {
+            // Per-student mode
+            isScheduledDay = studentDays.length > 0 && DOW_MAP[dow] && studentDays.includes(DOW_MAP[dow])
+            const status = studentData[dateStr]
+            hasPresent = status === 'present'
+            hasAbsent = status === 'absent'
+          } else {
+            // Class-wide mode
+            isScheduledDay = DOW_MAP[dow] && scheduledDaysOfWeek.includes(DOW_MAP[dow])
+            const record = markedDates.find(r => r.date === dateStr)
+            hasPresent = record && record.presentCount > 0
+            hasAbsent = record && record.absentCount > 0
+          }
 
           let cls = 'relative h-8 w-full rounded-lg text-xs font-medium transition-all '
           if (isSelected) {
@@ -177,6 +189,12 @@ function ClassesPage() {
   // Map of studentId → days_of_week[]
   const [studentSchedules, setStudentSchedules] = useState({})
 
+  // Per-student calendar view
+  const [selectedStudentId, setSelectedStudentId] = useState(null)
+  // { [dateStr]: 'present'|'absent' } for the selected student in the current month, null = class-wide mode
+  const [studentCalendarData, setStudentCalendarData] = useState(null)
+  const [loadingStudentCalendar, setLoadingStudentCalendar] = useState(false)
+
   useEffect(() => { fetchClasses() }, [])
 
   useEffect(() => {
@@ -187,6 +205,8 @@ function ClassesPage() {
       setEnrolledStudents([])
       setMarkedDates([])
     }
+    setSelectedStudentId(null)
+    setStudentCalendarData(null)
   }, [selectedClassId])
 
   useEffect(() => {
@@ -263,13 +283,59 @@ function ClassesPage() {
     }
   }
 
+  const fetchStudentCalendarData = useCallback(async (studentId, calDate, classId) => {
+    setLoadingStudentCalendar(true)
+    const y = calDate.getFullYear()
+    const m = String(calDate.getMonth() + 1).padStart(2, '0')
+    const lastDay = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 0).getDate()
+    const start = `${y}-${m}-01`
+    const end = `${y}-${m}-${String(lastDay).padStart(2, '0')}`
+    try {
+      const res = await api.get(`/attendance/student/${studentId}?start=${start}&end=${end}`)
+      const records = res.data?.data?.records || []
+      const map = {}
+      records
+        .filter(r => r.classId === classId)
+        .forEach(r => {
+          const dateStr = typeof r.date === 'string' ? r.date.split(/[T ]/)[0] : ''
+          if (dateStr) map[dateStr] = r.status
+        })
+      setStudentCalendarData(map)
+    } catch {
+      setStudentCalendarData({})
+    } finally {
+      setLoadingStudentCalendar(false)
+    }
+  }, [])
+
+  // Re-fetch per-student calendar when month changes while a student is selected
+  useEffect(() => {
+    if (selectedStudentId && selectedClassId) {
+      fetchStudentCalendarData(selectedStudentId, calendarDate, selectedClassId)
+    }
+  }, [selectedStudentId, calendarDate, selectedClassId, fetchStudentCalendarData])
+
+  const handleSelectStudent = (student) => {
+    if (selectedStudentId === student.id) {
+      setSelectedStudentId(null)
+      setStudentCalendarData(null)
+    } else {
+      setSelectedStudentId(student.id)
+      fetchStudentCalendarData(student.id, calendarDate, selectedClassId)
+    }
+  }
+
   const handleMarkAttendance = async (classId, studentId, status) => {
     setMarkingId(studentId)
     try {
       await api.post('/attendance', { classId, studentId, status, date: selectedDate })
       setAttendanceMap(prev => ({ ...prev, [studentId]: status }))
-      // Refresh marked dates so the calendar dot appears
+      // Refresh class-wide calendar dots
       fetchMarkedDates(classId, monthStr(calendarDate))
+      // Refresh the selected student's calendar if they are the one being marked
+      if (selectedStudentId === studentId) {
+        fetchStudentCalendarData(studentId, calendarDate, classId)
+      }
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Error al registrar asistencia')
     } finally {
@@ -502,6 +568,24 @@ function ClassesPage() {
                     <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                       {/* Left: Calendar */}
                       <div className="lg:col-span-1">
+                        {/* Student mode banner */}
+                        {selectedStudentId && (() => {
+                          const sel = enrolledStudents.find(s => s.id === selectedStudentId)
+                          return sel ? (
+                            <div className="flex items-center justify-between mb-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 truncate">
+                                📅 {getName(sel)}
+                              </span>
+                              <button
+                                onClick={() => { setSelectedStudentId(null); setStudentCalendarData(null) }}
+                                className="ml-2 flex-shrink-0 text-blue-400 hover:text-blue-600 dark:hover:text-blue-200 text-sm font-bold"
+                                title="Volver al resumen de clase"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : null
+                        })()}
                         <div className="flex items-center justify-between mb-3">
                           <button
                             onClick={() => navigateCalendarMonth(-1)}
@@ -519,18 +603,36 @@ function ClassesPage() {
                             ›
                           </button>
                         </div>
-                        <AttendanceCalendar
-                          year={calendarDate.getFullYear()}
-                          month={calendarDate.getMonth()}
-                          markedDates={markedDates}
-                          selectedDate={selectedDate}
-                          onSelectDate={handleSelectDate}
-                          scheduledDaysOfWeek={scheduledDaysOfWeek}
-                        />
+                        {loadingStudentCalendar ? (
+                          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-center h-40">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-600" />
+                          </div>
+                        ) : (
+                          <AttendanceCalendar
+                            year={calendarDate.getFullYear()}
+                            month={calendarDate.getMonth()}
+                            markedDates={markedDates}
+                            selectedDate={selectedDate}
+                            onSelectDate={handleSelectDate}
+                            scheduledDaysOfWeek={scheduledDaysOfWeek}
+                            studentData={studentCalendarData}
+                            studentDays={selectedStudentId ? (studentSchedules[selectedStudentId] || []) : []}
+                          />
+                        )}
                         <div className="mt-2 space-y-0.5 text-xs text-gray-400 dark:text-gray-500">
-                          <p><span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5 align-middle" />Día con presentes</p>
-                          <p><span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1.5 align-middle" />Día con ausentes</p>
-                          <p><span className="inline-block w-2 h-2 rounded bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 mr-1.5 align-middle" />Día programado</p>
+                          {studentCalendarData !== null ? (
+                            <>
+                              <p><span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5 align-middle" />Asistió</p>
+                              <p><span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1.5 align-middle" />Faltó</p>
+                              <p><span className="inline-block w-2 h-2 rounded bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 mr-1.5 align-middle" />Día programado</p>
+                            </>
+                          ) : (
+                            <>
+                              <p><span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5 align-middle" />Día con presentes</p>
+                              <p><span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1.5 align-middle" />Día con ausentes</p>
+                              <p><span className="inline-block w-2 h-2 rounded bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 mr-1.5 align-middle" />Día programado</p>
+                            </>
+                          )}
                         </div>
                       </div>
 
@@ -604,12 +706,27 @@ function ClassesPage() {
                                     const isMarking = markingId === sid
                                     const scheduled = isDayScheduled(sid, selectedDate)
                                     const days = Array.isArray(studentSchedules[sid]) ? studentSchedules[sid] : []
+                                    const isStudentSelected = selectedStudentId === sid
 
                                     return (
-                                      <tr key={sid} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                                      <tr
+                                        key={sid}
+                                        className={`transition-colors ${
+                                          isStudentSelected
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500'
+                                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'
+                                        }`}
+                                      >
                                         <td className="px-4 py-3 text-gray-400 dark:text-gray-500">{index + 1}</td>
-                                        <td className="px-4 py-3">
-                                          <p className="font-medium text-gray-900 dark:text-white">{getName(student)}</p>
+                                        <td
+                                          className="px-4 py-3 cursor-pointer"
+                                          onClick={() => handleSelectStudent(student)}
+                                          title={isStudentSelected ? 'Cerrar calendario individual' : 'Ver calendario de este alumno'}
+                                        >
+                                          <p className={`font-medium ${isStudentSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-white'}`}>
+                                            {getName(student)}
+                                            {isStudentSelected && <span className="ml-1.5 text-xs font-normal text-blue-500">📅</span>}
+                                          </p>
                                           <p className="text-xs text-gray-400 dark:text-gray-500">{student.email || '—'}</p>
                                         </td>
                                         <td className="px-4 py-3 hidden sm:table-cell">

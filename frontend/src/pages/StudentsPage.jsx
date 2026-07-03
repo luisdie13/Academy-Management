@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import api from '../services/api'
+import { useSettingsStore } from '../stores/settingsStore'
+import { formatCurrency, getCurrencySymbol } from '../utils/currency'
 
 const EMPTY_FORM = {
   firstName: '',
@@ -23,9 +25,11 @@ const EMPTY_FORM = {
   guardianPhone: '',
   guardianEmail: '',
   guardianRelationship: '',
+  classModality: '',
 }
 
 function StudentsPage() {
+  const { currency, fetchCurrency } = useSettingsStore()
   const [activeTab, setActiveTab] = useState('active')
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -44,6 +48,10 @@ function StudentsPage() {
   const [loadingDepartments, setLoadingDepartments] = useState(false)
   const [municipalities, setMunicipalities] = useState([])
   const [loadingMunicipalities, setLoadingMunicipalities] = useState(false)
+
+  useEffect(() => {
+    fetchCurrency()
+  }, [fetchCurrency])
 
   useEffect(() => {
     fetchStudents()
@@ -151,6 +159,7 @@ function StudentsPage() {
       guardianPhone: student.guardianPhone || '',
       guardianEmail: student.guardianEmail || '',
       guardianRelationship: student.guardianRelationship || '',
+      classModality: student.classModality || '',
     })
     setShowModal(true)
   }
@@ -223,6 +232,7 @@ function StudentsPage() {
         guardianPhone: formData.guardianPhone.trim() || null,
         guardianEmail: formData.guardianEmail.trim() || null,
         guardianRelationship: formData.guardianRelationship || null,
+        classModality: formData.classModality || null,
       }
 
       if (!editingStudentId && formData.manualPassword && formData.password) {
@@ -393,8 +403,8 @@ function StudentsPage() {
                         {student.paymentMode || 'postpaid'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${student.classPrice || 0}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">${student.monthlyFixedAmount || 0}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatCurrency(student.classPrice, currency)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{formatCurrency(student.monthlyFixedAmount, currency)}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex gap-2">
                         <button
@@ -512,6 +522,19 @@ function StudentsPage() {
                       </select>
                     </div>
                   )}
+
+                  {/* ── Class Modality ───────────────────────── */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Modalidad de clases (Opcional)</label>
+                    <select name="classModality" value={formData.classModality} onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      disabled={isSubmitting}>
+                      <option value="">Seleccionar modalidad</option>
+                      <option value="in_person">En la academia (presencial)</option>
+                      <option value="virtual">Virtual (en línea)</option>
+                      <option value="residential">Residencial (a domicilio)</option>
+                    </select>
+                  </div>
 
                   {/* ── Guardian Info ─────────────────────────── */}
                   <div className="p-4 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
@@ -673,7 +696,7 @@ function StudentsPage() {
                           Precio por Clase
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">Q</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{getCurrencySymbol(currency)}</span>
                           <input
                             type="number" name="classPrice" value={formData.classPrice}
                             onChange={handleChange} min="0" step="0.01"
@@ -688,7 +711,7 @@ function StudentsPage() {
                           Monto Mensual Fijo
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">Q</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">{getCurrencySymbol(currency)}</span>
                           <input
                             type="number" name="monthlyFixedAmount" value={formData.monthlyFixedAmount}
                             onChange={handleChange} min="0" step="0.01"

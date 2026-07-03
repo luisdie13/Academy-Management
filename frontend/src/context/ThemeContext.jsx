@@ -1,14 +1,17 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import api from '../services/api';
+import { applyPalette } from '../utils/colorPalette';
 
 const ThemeContext = createContext({
-  primaryColor: '#3B82F6',
+  primaryColor: '#0284c7',
   secondaryColor: '#10B981',
+  updateTheme: () => {},
 });
 
 const STORAGE_KEY = 'academy_theme';
 
 function applyTheme(primaryColor, secondaryColor) {
+  applyPalette(primaryColor);
   document.documentElement.style.setProperty('--primary-color', primaryColor);
   document.documentElement.style.setProperty('--secondary-color', secondaryColor);
 }
@@ -29,8 +32,15 @@ export function ThemeProvider({ children }) {
       applyTheme(cached.primaryColor, cached.secondaryColor);
       return cached;
     }
-    return { primaryColor: '#3B82F6', secondaryColor: '#10B981' };
+    return { primaryColor: '#0284c7', secondaryColor: '#10B981' };
   });
+
+  const updateTheme = useCallback((primaryColor, secondaryColor) => {
+    applyTheme(primaryColor, secondaryColor);
+    const newTheme = { primaryColor, secondaryColor };
+    setTheme(newTheme);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newTheme));
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -41,10 +51,7 @@ export function ThemeProvider({ children }) {
     })
       .then(({ data }) => {
         const { primary_color, secondary_color } = data.data;
-        applyTheme(primary_color, secondary_color);
-        const newTheme = { primaryColor: primary_color, secondaryColor: secondary_color };
-        setTheme(newTheme);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(newTheme));
+        updateTheme(primary_color, secondary_color);
       })
       .catch((err) => {
         if (err.code === 'ERR_CANCELED') return; // unmount cleanup, not a real error
@@ -52,10 +59,10 @@ export function ThemeProvider({ children }) {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [updateTheme]);
 
   return (
-    <ThemeContext.Provider value={theme}>
+    <ThemeContext.Provider value={{ ...theme, updateTheme }}>
       {children}
     </ThemeContext.Provider>
   );

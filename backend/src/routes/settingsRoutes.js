@@ -5,7 +5,7 @@ import { validate, createPaymentMethodSchema, updatePaymentMethodSchema } from '
 
 const router = express.Router();
 
-router.get('/payment-methods', getPaymentMethods);
+router.get('/payment-methods', authMiddleware, getPaymentMethods);
 
 router.post(
   '/payment-methods',

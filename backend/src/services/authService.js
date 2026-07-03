@@ -26,7 +26,8 @@ export const registerUser = async (userData) => {
       birthday = null,
       dpi = null,
       department = null,
-      municipality = null
+      municipality = null,
+      classModality = null,
     } = userData;
 
     const existingUser = await User.emailExists(email);
@@ -63,9 +64,9 @@ export const registerUser = async (userData) => {
         const createdUser = userResult.rows[0];
 
         await client.query(
-          `INSERT INTO student_config (student_id, payment_mode, price_per_class, monthly_fixed_amount)
-           VALUES ($1, $2, $3, $4)`,
-          [createdUser.id, 'postpaid', 0, null]
+          `INSERT INTO student_config (student_id, payment_mode, price_per_class, monthly_fixed_amount, class_modality)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [createdUser.id, 'postpaid', 0, null, classModality || null]
         );
 
         // Link the student to their academy's admin so class-level isolation works.
@@ -177,6 +178,18 @@ export const registerUser = async (userData) => {
       token
     };
   } catch (error) {
+    if (error.code === '23505') {
+      const constraint = error.constraint || '';
+      let message = 'An account with this information already exists';
+      if (constraint.includes('dpi')) {
+        message = 'DPI already registered by another account';
+      } else if (constraint.includes('email')) {
+        message = 'Email already registered';
+      }
+      const conflict = new Error(message);
+      conflict.statusCode = 409;
+      throw conflict;
+    }
     throw error;
   }
 };
@@ -223,7 +236,19 @@ export const loginUser = async (credentials) => {
         lastName: user.last_name,
         phone: user.phone,
         role: user.role,
-        mustChangePassword: user.must_change_password || false
+        mustChangePassword: user.must_change_password || false,
+        birthday: user.birthday
+          ? (user.birthday instanceof Date
+              ? user.birthday.toISOString().split('T')[0]
+              : String(user.birthday).split('T')[0])
+          : null,
+        dpi: user.dpi || null,
+        department: user.department || null,
+        municipality: user.municipality || null,
+        guardianName: user.guardian_name || null,
+        guardianPhone: user.guardian_phone || null,
+        guardianEmail: user.guardian_email || null,
+        guardianRelationship: user.guardian_relationship || null,
       },
       token
     };
@@ -255,7 +280,19 @@ export const getUserById = async (userId) => {
       phone: user.phone,
       role: user.role,
       status: user.status,
-      mustChangePassword: user.must_change_password || false
+      mustChangePassword: user.must_change_password || false,
+      birthday: user.birthday
+        ? (user.birthday instanceof Date
+            ? user.birthday.toISOString().split('T')[0]
+            : String(user.birthday).split('T')[0])
+        : null,
+      dpi: user.dpi || null,
+      department: user.department || null,
+      municipality: user.municipality || null,
+      guardianName: user.guardian_name || null,
+      guardianPhone: user.guardian_phone || null,
+      guardianEmail: user.guardian_email || null,
+      guardianRelationship: user.guardian_relationship || null,
     };
 
     // Include payment config for students so the dashboard can display billing info
@@ -268,6 +305,7 @@ export const getUserById = async (userId) => {
           ? parseFloat(config.monthly_fixed_amount)
           : null;
         profile.creditBalance = parseFloat(config.credit_balance || 0);
+        profile.classModality = config.class_modality || null;
       }
     }
 

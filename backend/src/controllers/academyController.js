@@ -38,7 +38,8 @@ export async function getAcademyProfile(req, res) {
           primary_color: '#3B82F6',
           secondary_color: '#10B981',
           bank_account_info: null,
-          is_active: false
+          is_active: false,
+          currency: 'GTQ',
         }
       });
     }
@@ -59,7 +60,7 @@ export async function getAcademyProfile(req, res) {
 export async function updateAcademyProfile(req, res) {
   try {
     const adminId = req.user?.id;
-    const { name, primary_color, secondary_color, logo_url, bank_account_info, subdomain } = req.body;
+    const { name, primary_color, secondary_color, logo_url, bank_account_info, subdomain, currency, contact_phone, contact_email } = req.body;
 
     const hexColorRegex = /^#[0-9A-F]{6}$/i;
     const updates = {};
@@ -94,6 +95,9 @@ export async function updateAcademyProfile(req, res) {
 
     if (logo_url !== undefined) updates.logo_url = logo_url;
     if (bank_account_info !== undefined) updates.bank_account_info = bank_account_info;
+    if (currency !== undefined) updates.currency = currency;
+    if (contact_phone !== undefined) updates.contact_phone = contact_phone || null;
+    if (contact_email !== undefined) updates.contact_email = contact_email || null;
 
     // Subdomain (academy code) update — validate format and uniqueness
     if (subdomain !== undefined) {

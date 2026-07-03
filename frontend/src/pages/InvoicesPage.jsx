@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import api from '../services/api'
+import { useSettingsStore } from '../stores/settingsStore'
+import { CURRENCIES, formatCurrency } from '../utils/currency'
 
 function InvoicesPage() {
+  const { currency, fetchCurrency, setCurrency } = useSettingsStore()
   const [invoices, setInvoices] = useState([])
   const [studentsMap, setStudentsMap] = useState({})
   const [loading, setLoading] = useState(true)
@@ -18,6 +21,12 @@ function InvoicesPage() {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
+  const [savingCurrency, setSavingCurrency] = useState(false)
+  const [currencySaved, setCurrencySaved] = useState(false)
+
+  useEffect(() => {
+    fetchCurrency()
+  }, [fetchCurrency])
 
   useEffect(() => {
     fetchAll()
@@ -113,8 +122,21 @@ function InvoicesPage() {
     }
   }
 
-  const formatCurrency = (amount) =>
-    new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' }).format(amount || 0)
+  const handleCurrencyChange = async (e) => {
+    const newCurrency = e.target.value
+    setCurrency(newCurrency)
+    setSavingCurrency(true)
+    setCurrencySaved(false)
+    try {
+      await api.put('/academy/profile', { currency: newCurrency })
+      setCurrencySaved(true)
+      setTimeout(() => setCurrencySaved(false), 2500)
+    } catch (err) {
+      console.error('Error saving currency:', err)
+    } finally {
+      setSavingCurrency(false)
+    }
+  }
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—'
@@ -197,6 +219,28 @@ function InvoicesPage() {
           </div>
         )}
 
+        {/* Currency Settings */}
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl flex flex-wrap items-center gap-4">
+          <div className="flex-shrink-0">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">💱 Moneda</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Moneda usada para precios y facturas</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              value={currency}
+              onChange={handleCurrencyChange}
+              disabled={savingCurrency}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+            >
+              {CURRENCIES.map(c => (
+                <option key={c.code} value={c.code}>{c.label}</option>
+              ))}
+            </select>
+            {savingCurrency && <span className="text-xs text-gray-500 dark:text-gray-400">Guardando…</span>}
+            {currencySaved && <span className="text-xs text-green-600 dark:text-green-400">✓ Guardado</span>}
+          </div>
+        </div>
+
         {/* Error Alert */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -268,13 +312,13 @@ function InvoicesPage() {
                         {invoice.invoiceMonth || '—'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {formatCurrency(invoice.subtotal)}
+                        {formatCurrency(invoice.subtotal, currency)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {formatCurrency(invoice.creditApplied)}
+                        {formatCurrency(invoice.creditApplied, currency)}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
-                        {formatCurrency(invoice.totalAmount)}
+                        {formatCurrency(invoice.totalAmount, currency)}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {getStatusBadge(invoice.status)}
@@ -374,7 +418,8 @@ function InvoicesPage() {
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Pending Amount</p>
               <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">
                 {formatCurrency(
-                  invoices.filter((i) => i.status === 'pending').reduce((s, i) => s + (i.totalAmount || 0), 0)
+                  invoices.filter((i) => i.status === 'pending').reduce((s, i) => s + (i.totalAmount || 0), 0),
+                  currency
                 )}
               </p>
             </div>
@@ -382,7 +427,8 @@ function InvoicesPage() {
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Collected</p>
               <p className="text-2xl font-bold text-green-700 dark:text-green-400">
                 {formatCurrency(
-                  invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + (i.totalAmount || 0), 0)
+                  invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + (i.totalAmount || 0), 0),
+                  currency
                 )}
               </p>
             </div>

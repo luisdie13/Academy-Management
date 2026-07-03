@@ -114,6 +114,12 @@ export const registerSchema = z.object({
     .trim()
     .optional()
     .nullable(),
+  classModality: z
+    .enum(['in_person', 'virtual', 'residential'], {
+      errorMap: () => ({ message: "Class modality must be 'in_person', 'virtual', or 'residential'" })
+    })
+    .optional()
+    .nullable(),
 }).superRefine((data, ctx) => {
   // If role is 'student', academy_code is required
   if (data.role === 'student' && !data.academyCode) {
@@ -244,6 +250,12 @@ export const createStudentSchema = z.object({
       .trim()
       .optional()
       .nullable(),
+    classModality: z
+      .enum(['in_person', 'virtual', 'residential'], {
+        errorMap: () => ({ message: "Class modality must be 'in_person', 'virtual', or 'residential'" })
+      })
+      .optional()
+      .nullable(),
     guardianName: z
       .string('Guardian name must be a valid string')
       .min(2, 'Guardian name must be at least 2 characters')
@@ -341,6 +353,12 @@ export const updateStudentSchema = z.object({
     .string('Municipality must be a valid string')
     .max(100, 'Municipality must not exceed 100 characters')
     .trim()
+    .optional()
+    .nullable(),
+  classModality: z
+    .enum(['in_person', 'virtual', 'residential'], {
+      errorMap: () => ({ message: "Class modality must be 'in_person', 'virtual', or 'residential'" })
+    })
     .optional()
     .nullable(),
   guardianName: z

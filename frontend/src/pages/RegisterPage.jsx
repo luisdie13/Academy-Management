@@ -23,7 +23,8 @@ function RegisterPage() {
     guardianName: '',
     guardianPhone: '',
     guardianEmail: '',
-    guardianRelationship: ''
+    guardianRelationship: '',
+    classModality: '',
   })
 
   const [formError, setFormError] = useState('')
@@ -257,6 +258,7 @@ function RegisterPage() {
         payload.guardianPhone = formData.guardianPhone || null
         payload.guardianEmail = formData.guardianEmail || null
         payload.guardianRelationship = formData.guardianRelationship || null
+        payload.classModality = formData.classModality || null
 
         if (formData.selectedClassIds && formData.selectedClassIds.length > 0) {
           payload.selectedClassIds = formData.selectedClassIds
@@ -732,6 +734,31 @@ function RegisterPage() {
                         {muni}
                       </option>
                     ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Class Modality Field (only for students) */}
+              {formData.role === 'student' && (
+                <div>
+                  <label
+                    htmlFor="classModality"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Modalidad de clases (Opcional)
+                  </label>
+                  <select
+                    id="classModality"
+                    name="classModality"
+                    value={formData.classModality}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 transition-all"
+                    disabled={isSubmitting}
+                  >
+                    <option value="">Seleccionar modalidad</option>
+                    <option value="in_person">En la academia (presencial)</option>
+                    <option value="virtual">Virtual (en línea)</option>
+                    <option value="residential">Residencial (a domicilio)</option>
                   </select>
                 </div>
               )}
