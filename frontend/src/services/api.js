@@ -1,11 +1,9 @@
 import axios from 'axios'
 
-// Relative URL — all requests go through the Vite dev-server proxy.
-// In Docker: Vite proxies /api → http://backend:3000/api (service name, not localhost).
-// In local dev: Vite proxies /api → http://localhost:3000/api.
-// Never use an absolute URL here; that bypasses the proxy and breaks Docker networking.
+// In dev: VITE_API_URL=/api  → goes through Vite proxy → localhost:3000
+// In prod: VITE_API_URL=https://your-backend.vercel.app/api → direct request
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   withCredentials: true, // sends the HttpOnly cookie on every request automatically
   headers: {
     'Content-Type': 'application/json',

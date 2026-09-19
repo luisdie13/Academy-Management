@@ -42,3 +42,4 @@ postgres_data/
 
 # Vite internal cache files (generated when running inside Docker)
 *.timestamp-*.mjs
+.vercel
