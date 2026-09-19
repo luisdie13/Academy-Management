@@ -152,12 +152,18 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (process.env.VERCEL) {
+  // On Vercel: initialize DB on cold start, skip listen()
+  initializeDatabase()
+    .then(() => initializeSchema())
+    .catch(err => console.error('Init error:', err));
+} else {
+  startServer();
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  process.exit(0);
-});
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    process.exit(0);
+  });
+}
 
 export default app;
