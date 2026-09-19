@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import api from '../services/api'
+import BackButton from '../components/BackButton'
+import { useLanguageStore } from '../stores/languageStore'
 
 const EMPTY_METHOD = {
   methodName: '',
@@ -133,6 +134,7 @@ function MethodModal({ method, onSave, onClose }) {
 }
 
 export default function PaymentInfoPage() {
+  const { t } = useLanguageStore()
   const [methods, setMethods] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(null) // null | { id?, methodName?, ... }
@@ -224,13 +226,10 @@ export default function PaymentInfoPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-1">Métodos de Pago</h1>
-            <p className="text-gray-500 dark:text-gray-400">Gestiona cómo los alumnos pueden contactarte y realizarte sus pagos</p>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-1">{t('paymentInfo.title')}</h1>
+            <p className="text-gray-500 dark:text-gray-400">{t('paymentInfo.subtitle')}</p>
           </div>
-          <Link to="/dashboard"
-            className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            ← Dashboard
-          </Link>
+          <BackButton to="/dashboard" label="← Dashboard" />
         </div>
 
         {error && (

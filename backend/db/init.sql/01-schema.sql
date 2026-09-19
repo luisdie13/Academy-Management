@@ -82,6 +82,9 @@ CREATE INDEX IF NOT EXISTS idx_academy_settings_is_active ON academy_settings(is
 ALTER TABLE academy_settings ADD COLUMN IF NOT EXISTS admin_id INTEGER REFERENCES users(id) ON DELETE SET NULL;
 -- Currency preference per academy (idempotent)
 ALTER TABLE academy_settings ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'GTQ';
+-- Contact info columns (idempotent)
+ALTER TABLE academy_settings ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(30);
+ALTER TABLE academy_settings ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255);
 CREATE INDEX IF NOT EXISTS idx_academy_settings_admin_id ON academy_settings(admin_id);
 
 -- Backfill for single-admin deployments where the association was never stored
@@ -129,6 +132,9 @@ CREATE TABLE IF NOT EXISTS student_config (
 );
 
 CREATE INDEX IF NOT EXISTS idx_student_config_student_id ON student_config(student_id);
+
+
+
 
 -- ============================================================
 -- CLASSES TABLE

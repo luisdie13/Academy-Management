@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from './stores/authStore'
+import { useLanguageStore } from './stores/languageStore'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
@@ -12,6 +13,7 @@ import EditProfilePage from './pages/EditProfilePage'
 import ProtectedRoute from './components/ProtectedRoute'
 import InvoicesPage from './pages/InvoicesPage'
 import PaymentInfoPage from './pages/PaymentInfoPage'
+import ScrollToTop from './components/ScrollToTop'
 import './styles/print.css'
 
 function App() {
@@ -25,6 +27,8 @@ function App() {
 function AppContent() {
   const { checkAuth } = useAuthStore()
   const location = useLocation()
+  const { t } = useLanguageStore()
+
 
   useEffect(() => {
     const isDarkMode = localStorage.getItem('theme') === 'dark'
@@ -40,28 +44,29 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+      <ScrollToTop />
       <main className="container-max py-8">
         <Routes>
           <Route
             path="/"
             element={
               <div className="text-center py-20">
-                <h1 className="text-4xl font-bold mb-4">TheAcademy Management</h1>
+                <h1 className="text-4xl font-bold mb-4">{t('app.name')}</h1>
                 <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-                  Professional Attendance Tracking &amp; Billing System
+                  {t('app.tagline')}
                 </p>
                 <div className="flex gap-4 justify-center">
                   <Link
                     to="/login"
                     className="px-8 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                   >
-                    Login
+                    {t('app.login')}
                   </Link>
                   <Link
                     to="/register"
                     className="px-8 py-3 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 dark:hover:bg-gray-800 transition-colors"
                   >
-                    Register
+                    {t('app.register')}
                   </Link>
                 </div>
               </div>
@@ -142,13 +147,13 @@ function AppContent() {
               <div className="text-center py-20">
                 <h1 className="text-4xl font-bold mb-4">404</h1>
                 <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
-                  Page not found
+                  {t('app.notFound')}
                 </p>
                 <Link
                   to="/"
                   className="px-8 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
-                  Go Home
+                  {t('app.goHome')}
                 </Link>
               </div>
             }

@@ -5,6 +5,7 @@ import { useSettingsStore } from '../stores/settingsStore'
 import { formatCurrency } from '../utils/currency'
 import api from '../services/api'
 import AcademySettingsCard from '../components/AcademySettingsCard'
+import { useLanguageStore } from '../stores/languageStore'
 import {
   LineChart,
   Line,
@@ -22,6 +23,7 @@ function DashboardPage() {
   const { user, logout } = useAuthStore()
   const { currency, fetchCurrency } = useSettingsStore()
   const navigate = useNavigate()
+  const { t } = useLanguageStore()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [metrics, setMetrics] = useState({
@@ -120,7 +122,7 @@ function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">{t('dashboard.loadingData')}</p>
         </div>
       </div>
     )
@@ -131,10 +133,10 @@ function DashboardPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Dashboard
+            {t('dashboard.title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Welcome, {user?.fullName || user?.firstName || 'Admin'}
+            {t('dashboard.welcome', { name: user?.fullName || user?.firstName || 'Admin' })}
           </p>
         </div>
 
@@ -148,7 +150,7 @@ function DashboardPage() {
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-8 border border-blue-200 dark:border-blue-800">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                Active Students
+                {t('dashboard.activeStudents')}
               </h3>
               <span className="text-3xl">👥</span>
             </div>
@@ -156,14 +158,14 @@ function DashboardPage() {
               {metrics.activeStudents}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Registered students
+              {t('dashboard.registeredStudents')}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-8 border border-green-200 dark:border-green-800">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                This Month's Classes
+                {t('dashboard.monthlyClasses')}
               </h3>
               <span className="text-3xl">📚</span>
             </div>
@@ -171,14 +173,14 @@ function DashboardPage() {
               {metrics.monthlyClasses}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Scheduled classes
+              {t('dashboard.scheduledClasses')}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-8 border border-orange-200 dark:border-orange-800">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                Pending Billing
+                {t('dashboard.pendingBilling')}
               </h3>
               <span className="text-3xl">💰</span>
             </div>
@@ -186,7 +188,7 @@ function DashboardPage() {
               {formatCurrency(metrics.pendingBilling, currency)}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              To collect
+              {t('dashboard.toCollect')}
             </p>
           </div>
         </div>
@@ -194,7 +196,7 @@ function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-              Attendance Trend
+              {t('dashboard.attendanceTrend')}
             </h2>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={attendanceData}>
@@ -216,7 +218,7 @@ function DashboardPage() {
                   strokeWidth={3}
                   dot={{ fill: '#3b82f6', r: 5 }}
                   activeDot={{ r: 7 }}
-                  name="Attendance %"
+                  name={t('dashboard.attendanceTrend')}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -224,7 +226,7 @@ function DashboardPage() {
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-              Monthly Income
+              {t('dashboard.monthlyIncome')}
             </h2>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={incomeData}>
@@ -240,8 +242,8 @@ function DashboardPage() {
                   }}
                 />
                 <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '14px' }} />
-                <Bar dataKey="income" fill="#10b981" name="Actual Revenue" />
-                <Bar dataKey="billed" fill="#3b82f6" name="Billed" />
+                <Bar dataKey="income" fill="#10b981" name={t('dashboard.actualRevenue')} />
+                <Bar dataKey="billed" fill="#3b82f6" name={t('dashboard.billed')} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -257,10 +259,10 @@ function DashboardPage() {
             className="block p-6 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-xl border-2 border-primary-200 dark:border-primary-800 hover:shadow-lg transition-all"
           >
             <h3 className="text-lg font-semibold text-primary-600 dark:text-primary-400 mb-2">
-              Manage Students
+              {t('dashboard.manageStudents')}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              View, edit or register students
+              {t('dashboard.manageStudentsDesc')}
             </p>
           </Link>
 
@@ -269,10 +271,10 @@ function DashboardPage() {
             className="block p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border-2 border-green-200 dark:border-green-800 hover:shadow-lg transition-all"
           >
             <h3 className="text-lg font-semibold text-green-600 dark:text-green-400 mb-2">
-              Classes & Attendance
+              {t('dashboard.classesAttendance')}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Manage classes and track attendance
+              {t('dashboard.classesAttendanceDesc')}
             </p>
           </Link>
 
@@ -281,10 +283,10 @@ function DashboardPage() {
             className="block p-6 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border-2 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all"
           >
             <h3 className="text-lg font-semibold text-orange-600 dark:text-orange-400 mb-2">
-              Invoices & Payments
+              {t('dashboard.invoicesPayments')}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Manage invoices and payments
+              {t('dashboard.invoicesPaymentsDesc')}
             </p>
           </Link>
 
@@ -293,10 +295,10 @@ function DashboardPage() {
             className="block p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border-2 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all"
           >
             <h3 className="text-lg font-semibold text-purple-600 dark:text-purple-400 mb-2">
-              Métodos de Pago
+              {t('dashboard.paymentMethods')}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Contacto y cuentas para cobros
+              {t('dashboard.paymentMethodsDesc')}
             </p>
           </Link>
         </div>
@@ -306,7 +308,7 @@ function DashboardPage() {
             onClick={handleLogout}
             className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
           >
-            🚪 Log Out
+            🚪 {t('dashboard.logout')}
           </button>
         </div>
       </div>

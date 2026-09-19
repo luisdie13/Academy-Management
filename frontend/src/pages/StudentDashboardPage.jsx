@@ -5,9 +5,11 @@ import api from '../services/api'
 import StudentCalendar from '../components/StudentCalendar'
 import StudentBilling, { PaymentInfoPanel } from '../components/StudentBilling'
 import AvailableClasses from '../components/AvailableClasses'
+import { useLanguageStore } from '../stores/languageStore'
 
 function StudentDashboardPage() {
   const { user, logout } = useAuthStore()
+  const { t } = useLanguageStore()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
@@ -140,10 +142,10 @@ function StudentDashboardPage() {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 print:hidden">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            My Dashboard
+            {t('studentDashboard.title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Welcome, {firstName}!
+            {t('studentDashboard.welcome', { name: firstName })}
           </p>
         </div>
 
@@ -154,11 +156,11 @@ function StudentDashboardPage() {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                My Attendance
+                {t('studentDashboard.myAttendance')}
               </h3>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              View attendance calendar
+              {t('studentDashboard.viewAttendanceCalendar')}
             </p>
           </div>
 
@@ -168,35 +170,35 @@ function StudentDashboardPage() {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                Billing & Payments
+                {t('studentDashboard.billingPayments')}
               </h3>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              View billing status
+              {t('studentDashboard.viewBillingStatus')}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-8 border border-orange-200 dark:border-orange-800">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-                My Classes
+                {t('studentDashboard.myClasses')}
               </h3>
             </div>
             <p className="text-4xl font-bold text-orange-600 dark:text-orange-400">
               {classesLoading ? '...' : myClasses?.length || 0}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-              Active classes
+              {t('studentDashboard.activeClasses')}
             </p>
           </div>
         </div>
 
         <div className="mb-8 flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 print:hidden">
           {[
-            { key: 'overview', label: 'Overview' },
-            { key: 'attendance', label: 'My Attendance' },
-            { key: 'billing', label: 'Billing & Payments' },
-            { key: 'enroll', label: 'Available Classes' },
+            { key: 'overview', label: t('studentDashboard.tabOverview') },
+            { key: 'attendance', label: t('studentDashboard.tabAttendance') },
+            { key: 'billing', label: t('studentDashboard.tabBilling') },
+            { key: 'enroll', label: t('studentDashboard.tabEnroll') },
           ].map(({ key, label }) => (
             <button
               key={key}

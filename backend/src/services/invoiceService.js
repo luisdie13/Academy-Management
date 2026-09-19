@@ -36,10 +36,13 @@ export const generateMonthlyInvoice = async (invoiceData) => {
       }
 
       // Step 2: Resolve month boundaries as DATE strings
-      const monthStart = new Date(`${invoiceMonth}-01`);
-      const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-      const monthStartStr = monthStart.toISOString().split('T')[0];
-      const monthEndStr = monthEnd.toISOString().split('T')[0];
+      // Parse directly from invoiceMonth string to avoid UTC/local timezone shifts
+      const [yearStr, monthStr] = invoiceMonth.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10);
+      const monthStartStr = `${yearStr}-${monthStr}-01`;
+      const lastDay = new Date(year, month, 0).getDate(); // day-0 of next month = last day of this month (local)
+      const monthEndStr = `${yearStr}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
 
       // Step 3: Fetch attendance records for the month (a.class_date = the day attendance was taken)
       const attendanceText = `
@@ -56,8 +59,18 @@ export const generateMonthlyInvoice = async (invoiceData) => {
       let subtotal = 0;
       let creditApplied = 0;
 
+      console.log('[INVOICE DEBUG] studentConfig:', {
+        payment_mode: studentConfig.payment_mode,
+        price_per_class: studentConfig.price_per_class,
+        monthly_fixed_amount: studentConfig.monthly_fixed_amount,
+      });
+      console.log('[INVOICE DEBUG] attendance records found:', attendanceRecords.length);
+      console.log('[INVOICE DEBUG] attendance statuses:', attendanceRecords.map(r => r.status));
+      console.log('[INVOICE DEBUG] date range:', { monthStartStr, monthEndStr });
+
       if (studentConfig.payment_mode === 'postpaid') {
         const presentCount = attendanceRecords.filter(r => r.status === 'present').length;
+        console.log('[INVOICE DEBUG] presentCount:', presentCount);
         subtotal = parseFloat(studentConfig.price_per_class || 0) * presentCount;
         creditApplied = 0;
       } else if (studentConfig.payment_mode === 'prepaid') {

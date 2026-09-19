@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import pool from '../config/database.js';
+import sequelize from '../config/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,19 +29,16 @@ export const initializeSchema = async () => {
     return true;
   }
 
-  const client = await pool.connect();
   try {
     for (const file of sqlFiles) {
       const filePath = path.join(sqlDir, file);
       const sql = fs.readFileSync(filePath, 'utf8');
-      await client.query(sql);
+      await sequelize.query(sql);
       console.log(`Schema file executed: ${file}`);
     }
     return true;
   } catch (error) {
     console.error('Error executing schema:', error.message);
     throw error;
-  } finally {
-    client.release();
   }
 };

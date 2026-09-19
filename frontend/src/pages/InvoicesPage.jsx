@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import api from '../services/api'
+import BackButton from '../components/BackButton'
+import { useLanguageStore } from '../stores/languageStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { CURRENCIES, formatCurrency } from '../utils/currency'
 
 function InvoicesPage() {
   const { currency, fetchCurrency, setCurrency } = useSettingsStore()
+  const { t } = useLanguageStore()
   const [invoices, setInvoices] = useState([])
   const [studentsMap, setStudentsMap] = useState({})
   const [loading, setLoading] = useState(true)
@@ -53,7 +56,7 @@ function InvoicesPage() {
       setStudentsMap(map)
     } catch (err) {
       console.error('Error fetching invoices:', err)
-      setError('Failed to load invoices')
+      setError(t('invoices.failedLoad'))
     } finally {
       setLoading(false)
     }
@@ -104,6 +107,17 @@ function InvoicesPage() {
     }
   }
 
+  const handleDeleteInvoice = async (invoiceId, invoiceMonth) => {
+    if (!window.confirm(`¿Eliminar la factura de ${invoiceMonth}? Esta acción no se puede deshacer.`)) return
+    try {
+      await api.delete(`/invoices/${invoiceId}`)
+      await fetchAll()
+    } catch (err) {
+      console.error('Error deleting invoice:', err)
+      alert(err.response?.data?.error?.message || 'Error al eliminar la factura')
+    }
+  }
+
   const handleDownloadPdf = async (invoiceId, invoiceMonth) => {
     try {
       const response = await api.get(`/invoices/${invoiceId}/pdf`, { responseType: 'blob' })
@@ -118,7 +132,7 @@ function InvoicesPage() {
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Error downloading PDF:', err)
-      alert('Failed to download PDF. Please try again.')
+      alert(t('invoices.failedPdf'))
     }
   }
 
@@ -149,21 +163,21 @@ function InvoicesPage() {
         return (
           <div className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
             <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span className="text-xs font-semibold text-green-700 dark:text-green-400">Paid</span>
+            <span className="text-xs font-semibold text-green-700 dark:text-green-400">{t('invoices.statusPaid')}</span>
           </div>
         )
       case 'pending':
         return (
           <div className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
             <Clock className="w-3 h-3 text-yellow-600 dark:text-yellow-400" />
-            <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-400">Pending</span>
+            <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-400">{t('invoices.statusPending')}</span>
           </div>
         )
       case 'overdue':
         return (
           <div className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 rounded-full">
             <AlertCircle className="w-3 h-3 text-red-600 dark:text-red-400" />
-            <span className="text-xs font-semibold text-red-700 dark:text-red-400">Overdue</span>
+            <span className="text-xs font-semibold text-red-700 dark:text-red-400">{t('invoices.statusOverdue')}</span>
           </div>
         )
       default:
@@ -175,20 +189,23 @@ function InvoicesPage() {
     <div className="min-h-screen bg-white dark:bg-gray-950 px-4 py-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
+        <div className="mb-2">
+          <BackButton to="/dashboard" label="← Dashboard" />
+        </div>
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              Facturas & Pagos
+              {t('invoices.title')}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Gestiona facturas de alumnos y registra pagos
+              {t('invoices.subtitle')}
             </p>
           </div>
           <button
             onClick={() => setGenerateModal(true)}
             className="flex-shrink-0 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-sm"
           >
-            ⚡ Generar Facturas
+            ⚡ {t('invoices.generateInvoices')}
           </button>
         </div>
 
@@ -196,11 +213,11 @@ function InvoicesPage() {
         {generateModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-sm w-full p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Generar Facturas Mensuales</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{t('invoices.generateMonthlyTitle')}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Genera o actualiza las facturas de todos los alumnos activos para el mes indicado.
+                {t('invoices.generateModalDesc')}
               </p>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mes a facturar</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('invoices.monthLabel')}</label>
               <input
                 type="month"
                 value={generateMonth}
@@ -209,10 +226,10 @@ function InvoicesPage() {
               />
               <div className="flex gap-3">
                 <button onClick={() => setGenerateModal(false)} className="flex-1 px-4 py-2 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" disabled={generating}>
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button onClick={handleGenerateInvoices} disabled={generating || !generateMonth} className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50">
-                  {generating ? 'Generando…' : 'Generar'}
+                  {generating ? t('invoices.generating') : t('invoices.generateInvoices')}
                 </button>
               </div>
             </div>
@@ -222,8 +239,8 @@ function InvoicesPage() {
         {/* Currency Settings */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl flex flex-wrap items-center gap-4">
           <div className="flex-shrink-0">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">💱 Moneda</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Moneda usada para precios y facturas</p>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">💱 {t('invoices.currency')}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('invoices.currencyDesc')}</p>
           </div>
           <div className="flex items-center gap-3">
             <select
@@ -236,8 +253,8 @@ function InvoicesPage() {
                 <option key={c.code} value={c.code}>{c.label}</option>
               ))}
             </select>
-            {savingCurrency && <span className="text-xs text-gray-500 dark:text-gray-400">Guardando…</span>}
-            {currencySaved && <span className="text-xs text-green-600 dark:text-green-400">✓ Guardado</span>}
+            {savingCurrency && <span className="text-xs text-gray-500 dark:text-gray-400">{t('invoices.saving')}</span>}
+            {currencySaved && <span className="text-xs text-green-600 dark:text-green-400">{t('invoices.saved')}</span>}
           </div>
         </div>
 
@@ -251,9 +268,9 @@ function InvoicesPage() {
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
           {[
-            { key: 'all', label: 'All Invoices' },
-            { key: 'pending', label: '⏳ Pending' },
-            { key: 'paid', label: '✅ Paid' },
+            { key: 'all', label: t('invoices.tabAll') },
+            { key: 'pending', label: `⏳ ${t('invoices.tabPending')}` },
+            { key: 'paid', label: `✅ ${t('invoices.tabPaid')}` },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -274,13 +291,13 @@ function InvoicesPage() {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading invoices...</p>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
             </div>
           </div>
         ) : invoices.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <p className="text-gray-600 dark:text-gray-400">
-              No {activeTab !== 'all' ? activeTab : ''} invoices found
+              {t('invoices.noInvoices')}
             </p>
           </div>
         ) : (
@@ -288,21 +305,20 @@ function InvoicesPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Student</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Month</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Subtotal</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Credit</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Total</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Due Date</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Actions</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('invoices.colStudent')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('invoices.colMonth')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('invoices.colSubtotal')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('invoices.colCredit')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('invoices.colTotal')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('invoices.colStatus')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('invoices.colDue')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.map((invoice) => (
-                  <>
+                  <React.Fragment key={invoice.id}>
                     <tr
-                      key={invoice.id}
                       className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
@@ -333,7 +349,7 @@ function InvoicesPage() {
                               onClick={() => handleOpenPayForm(invoice.id)}
                               className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-xs font-semibold"
                             >
-                              💳 Mark as Paid
+                              💳 {t('invoices.markAsPaid')}
                             </button>
                           )}
                           <button
@@ -341,6 +357,12 @@ function InvoicesPage() {
                             className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-xs font-semibold"
                           >
                             📄 PDF
+                          </button>
+                          <button
+                            onClick={() => handleDeleteInvoice(invoice.id, invoice.invoiceMonth)}
+                            className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors text-xs font-semibold"
+                          >
+                            🗑 {t('invoices.deleteInvoice')}
                           </button>
                         </div>
                       </td>
@@ -353,26 +375,26 @@ function InvoicesPage() {
                           <div className="flex flex-wrap items-end gap-4">
                             <div>
                               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Payment Method
+                                {t('invoices.paymentMethod')}
                               </label>
                               <input
                                 type="text"
                                 value={payForm.paymentMethod}
                                 onChange={(e) => setPayForm((p) => ({ ...p, paymentMethod: e.target.value }))}
-                                placeholder="e.g. Cash, Bank Transfer"
+                                placeholder={t('invoices.paymentMethodPlaceholder')}
                                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm w-52 focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 disabled={paySubmitting}
                               />
                             </div>
                             <div>
                               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Reference # (Optional)
+                                {t('invoices.referenceNumber')}
                               </label>
                               <input
                                 type="text"
                                 value={payForm.referenceNumber}
                                 onChange={(e) => setPayForm((p) => ({ ...p, referenceNumber: e.target.value }))}
-                                placeholder="Transaction or receipt number"
+                                placeholder={t('invoices.referenceNumberPlaceholder')}
                                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm w-60 focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 disabled={paySubmitting}
                               />
@@ -383,14 +405,14 @@ function InvoicesPage() {
                                 disabled={paySubmitting}
                                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg text-sm transition-colors disabled:opacity-50"
                               >
-                                {paySubmitting ? 'Processing...' : 'Confirm Payment'}
+                                {paySubmitting ? t('common.loading') : t('invoices.confirmPayment')}
                               </button>
                               <button
                                 onClick={handleCancelPay}
                                 disabled={paySubmitting}
                                 className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-lg text-sm transition-colors"
                               >
-                                Cancel
+                                {t('common.cancel')}
                               </button>
                             </div>
                             {payError && (
@@ -400,7 +422,7 @@ function InvoicesPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -411,11 +433,11 @@ function InvoicesPage() {
         {!loading && invoices.length > 0 && (
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total Invoices</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t('invoices.totalInvoices')}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{invoices.length}</p>
             </div>
             <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Pending Amount</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t('invoices.pendingAmount')}</p>
               <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">
                 {formatCurrency(
                   invoices.filter((i) => i.status === 'pending').reduce((s, i) => s + (i.totalAmount || 0), 0),
@@ -424,7 +446,7 @@ function InvoicesPage() {
               </p>
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Collected</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{t('invoices.collected')}</p>
               <p className="text-2xl font-bold text-green-700 dark:text-green-400">
                 {formatCurrency(
                   invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + (i.totalAmount || 0), 0),

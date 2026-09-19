@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import { useLanguageStore } from '../stores/languageStore'
 
 function LoginPage() {
   const navigate = useNavigate()
   const { login, isAuthenticated, loading, user } = useAuthStore()
+  const { t } = useLanguageStore()
 
   const [formData, setFormData] = useState({
     email: '',
@@ -79,14 +81,14 @@ function LoginPage() {
                TheAcademy Management
              </h1>
              <p className="text-primary-100 text-center mt-2">
-               Management System
+               {t('login.system')}
              </p>
            </div>
 
           {/* Form Container */}
           <div className="px-6 py-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Sign In
+              {t('login.title')}
             </h2>
 
             {/* Error Alert */}
@@ -168,10 +170,10 @@ function LoginPage() {
                 {isSubmitting || loading ? (
                   <>
                     <span className="loader"></span>
-                    Signing in...
+                    {t('login.signingIn')}
                   </>
                 ) : (
-                  'Sign In'
+                  t('login.signIn')
                 )}
               </button>
             </form>
@@ -183,7 +185,7 @@ function LoginPage() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                  Don't have an account?
+                  {t('login.noAccount')}
                 </span>
               </div>
             </div>
@@ -193,14 +195,14 @@ function LoginPage() {
               href="/register"
               className="block w-full py-3 border-2 border-primary-600 text-primary-600 dark:text-primary-400 font-semibold rounded-lg hover:bg-primary-50 dark:hover:bg-gray-700 transition-all duration-200 text-center"
             >
-              Create Account
+              {t('login.registerHere')}
             </a>
           </div>
 
           {/* Footer */}
           <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
             <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-              © 2026 TheAcademy Management. All rights reserved.
+              {t('app.copyright')}
             </p>
           </div>
         </div>

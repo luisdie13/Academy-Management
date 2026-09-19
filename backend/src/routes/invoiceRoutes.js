@@ -5,7 +5,8 @@ import {
   payInvoice,
   generateInvoicePDF,
   generateMonthlyInvoices,
-  getStudentInvoices
+  getStudentInvoices,
+  deleteInvoice
 } from '../controllers/invoiceController.js';
 import { authMiddleware, authorize } from '../middleware/auth.js';
 import { validate, payInvoiceSchema } from '../middleware/validation.js';
@@ -29,5 +30,8 @@ router.post('/:id/pay', authMiddleware, authorize('admin'), validate(payInvoiceS
 
 // GET /api/invoices/:id/pdf — download PDF receipt
 router.get('/:id/pdf', authMiddleware, generateInvoicePDF);
+
+// DELETE /api/invoices/:id — delete an invoice (admin only)
+router.delete('/:id', authMiddleware, authorize('admin'), deleteInvoice);
 
 export default router;

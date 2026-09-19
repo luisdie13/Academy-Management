@@ -24,6 +24,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -34,6 +35,9 @@
     "jsonwebtoken": "^9.0.2",
     "pdfkit": "^0.13.0",
     "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.8",
+    "ws": "^8.21.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {

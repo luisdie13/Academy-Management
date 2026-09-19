@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { useLanguageStore } from '../stores/languageStore'
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const { t } = useLanguageStore()
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -317,20 +319,20 @@ function RegisterPage() {
            {/* Header */}
            <div className="bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 px-6 py-8">
              <h1 className="text-3xl font-bold text-white text-center">
-               TheAcademy Management
+               {t('app.name')}
              </h1>
              <p className="text-primary-100 text-center mt-2">
-               Management System
+               {t('login.system')}
              </p>
            </div>
 
           {/* Form Container */}
           <div className="px-6 py-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Create Account
+              {t('register.title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Unified registration form
+              {t('register.subtitle')}
             </p>
 
             {/* Error Alert */}
@@ -349,7 +351,7 @@ function RegisterPage() {
                   htmlFor="firstName"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
-                  First Name
+                  {t('register.firstName')}
                 </label>
                 <input
                   id="firstName"
@@ -369,7 +371,7 @@ function RegisterPage() {
                   htmlFor="lastName"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
-                  Last Name
+                  {t('register.lastName')}
                 </label>
                 <input
                   id="lastName"
@@ -389,7 +391,7 @@ function RegisterPage() {
                   htmlFor="email"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
-                  Email
+                  {t('register.email')}
                 </label>
                 <input
                   id="email"
@@ -419,8 +421,8 @@ function RegisterPage() {
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 transition-all"
                   disabled={isSubmitting}
                 >
-                  <option value="student">Student</option>
-                  <option value="admin">Administrator / Teacher</option>
+                  <option value="student">{t('register.studentRole')}</option>
+                  <option value="admin">{t('register.adminRole')}</option>
                 </select>
               </div>
 
@@ -826,7 +828,7 @@ function RegisterPage() {
                   htmlFor="password"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
-                  Password
+                  {t('register.password')}
                 </label>
                 <div className="relative">
                   <input
@@ -865,7 +867,7 @@ function RegisterPage() {
                 {/* Password Criteria Validation Block */}
                 <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
                   <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    Security requirements:
+                    {t('register.passwordRequirements')}
                   </p>
 
                   <div className="flex items-center gap-3 mb-2">
@@ -881,7 +883,7 @@ function RegisterPage() {
                         ? 'text-green-600 dark:text-green-400'
                         : 'text-gray-600 dark:text-gray-400'
                     }`}>
-                      Minimum 8 characters
+                      {t('register.minLength')}
                     </span>
                   </div>
 
@@ -898,7 +900,7 @@ function RegisterPage() {
                         ? 'text-green-600 dark:text-green-400'
                         : 'text-gray-600 dark:text-gray-400'
                     }`}>
-                      At least one uppercase letter (A-Z)
+                      {t('register.hasUpperCase')}
                     </span>
                   </div>
 
@@ -915,7 +917,7 @@ function RegisterPage() {
                         ? 'text-green-600 dark:text-green-400'
                         : 'text-gray-600 dark:text-gray-400'
                     }`}>
-                      At least one lowercase letter (a-z)
+                      {t('register.hasLowerCase')}
                     </span>
                   </div>
 
@@ -932,7 +934,7 @@ function RegisterPage() {
                         ? 'text-green-600 dark:text-green-400'
                         : 'text-gray-600 dark:text-gray-400'
                     }`}>
-                      At least one number (0-9)
+                      {t('register.hasNumber')}
                     </span>
                   </div>
 
@@ -949,7 +951,7 @@ function RegisterPage() {
                         ? 'text-green-600 dark:text-green-400'
                         : 'text-gray-600 dark:text-gray-400'
                     }`}>
-                      At least one special character (!, @, #, $, %, etc.)
+                      {t('register.hasSpecialChar')}
                     </span>
                   </div>
                 </div>
@@ -961,7 +963,7 @@ function RegisterPage() {
                   htmlFor="confirmPassword"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
-                  Confirm Password
+                  {t('register.confirmPassword')}
                 </label>
                 <div className="relative">
                   <input
@@ -1004,10 +1006,10 @@ function RegisterPage() {
                 {isSubmitting ? (
                   <>
                     <span className="loader"></span>
-                    Registering...
+                    {t('register.creating')}
                   </>
                 ) : (
-                  'Create Account'
+                  t('register.createAccount')
                 )}
               </button>
             </form>
@@ -1019,7 +1021,7 @@ function RegisterPage() {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                  Already have an account?
+                  {t('register.alreadyHaveAccount')}
                 </span>
               </div>
             </div>
@@ -1029,14 +1031,14 @@ function RegisterPage() {
               href="/login"
               className="block w-full py-3 border-2 border-primary-600 text-primary-600 dark:text-primary-400 font-semibold rounded-lg hover:bg-primary-50 dark:hover:bg-gray-700 transition-all duration-200 text-center"
             >
-              Sign In
+              {t('login.signIn')}
             </a>
           </div>
 
           {/* Footer */}
           <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
             <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-              © 2026 TheAcademy Management. All rights reserved.
+              {t('app.copyright')}
             </p>
           </div>
         </div>

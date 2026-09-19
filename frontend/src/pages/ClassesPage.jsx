@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import api from '../services/api'
+import BackButton from '../components/BackButton'
+import { useLanguageStore } from '../stores/languageStore'
 
 const DAYS_LABEL = { monday: 'Lun', tuesday: 'Mar', wednesday: 'Mié', thursday: 'Jue', friday: 'Vie', saturday: 'Sáb' }
 const DAY_VALUES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
@@ -162,6 +164,7 @@ function ScheduleModal({ student, classId, currentDays, onSave, onClose }) {
 }
 
 function ClassesPage() {
+  const { t } = useLanguageStore()
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -472,16 +475,19 @@ function ClassesPage() {
       <div className="max-w-6xl mx-auto space-y-12">
 
         {/* Header */}
+        <div className="mb-2">
+          <BackButton to="/dashboard" label="← Dashboard" />
+        </div>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-1">Clases & Asistencia</h1>
-            <p className="text-gray-500 dark:text-gray-400">Gestiona clases y registra asistencia por día</p>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-1">{t('classes.title')}</h1>
+            <p className="text-gray-500 dark:text-gray-400">{t('classes.subtitle')}</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
             className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors"
           >
-            + Nueva Clase
+            {t('classes.newClass')}
           </button>
         </div>
 

@@ -100,10 +100,15 @@ export const getStudents = async (req, res, next) => {
         u.is_active, u.created_at, u.must_change_password,
         u.birthday, u.dpi, u.department, u.municipality,
         u.guardian_name, u.guardian_phone, u.guardian_email, u.guardian_relationship,
-        sc.payment_mode, sc.price_per_class, sc.monthly_fixed_amount, sc.class_modality
+        sc.payment_mode, sc.price_per_class, sc.monthly_fixed_amount, sc.class_modality,
+        COALESCE(
+          ARRAY_AGG(ci.class_id) FILTER (WHERE ci.class_id IS NOT NULL AND ci.enrollment_status = 'active'),
+          ARRAY[]::int[]
+        ) AS enrolled_class_ids
       FROM users u
       INNER JOIN student_admin_association saa ON u.id = saa.student_id AND saa.admin_id = $1
       LEFT JOIN student_config sc ON u.id = sc.student_id
+      LEFT JOIN class_inscriptions ci ON u.id = ci.student_id AND ci.admin_id = $1
       WHERE u.role = 'student' AND u.is_active = true
     `;
     const params = [adminId];
@@ -114,7 +119,14 @@ export const getStudents = async (req, res, next) => {
       text += ` AND u.status = 'inactive'`;
     }
 
-    text += ` ORDER BY u.created_at DESC`;
+    text += `
+      GROUP BY u.id, u.email, u.first_name, u.last_name, u.phone, u.status,
+               u.is_active, u.created_at, u.must_change_password,
+               u.birthday, u.dpi, u.department, u.municipality,
+               u.guardian_name, u.guardian_phone, u.guardian_email, u.guardian_relationship,
+               sc.payment_mode, sc.price_per_class, sc.monthly_fixed_amount, sc.class_modality
+      ORDER BY u.created_at DESC
+    `;
 
     const students = await queryAll(text, params);
 
@@ -145,7 +157,8 @@ export const getStudents = async (req, res, next) => {
         paymentMode: student.payment_mode || 'postpaid',
         classPrice: student.price_per_class || 0,
         monthlyFixedAmount: student.monthly_fixed_amount || null,
-        classModality: student.class_modality || null
+        classModality: student.class_modality || null,
+        enrolledClassIds: student.enrolled_class_ids || []
       })),
       total: students.length,
       timestamp: new Date().toISOString()

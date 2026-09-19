@@ -2,8 +2,9 @@ import Invoice from '../models/Invoice.js';
 import Transaction from '../models/Transaction.js';
 import User from '../models/User.js';
 import AcademySettings from '../models/AcademySettings.js';
+import PaymentMethod from '../models/PaymentMethod.js';
 import PDFDocument from 'pdfkit';
-import pool from '../config/database.js';
+import sequelize from '../config/database.js';
 import { generateBulkMonthlyInvoices } from '../services/invoiceService.js';
 
 /**
@@ -130,84 +131,68 @@ export const getInvoice = async (req, res, next) => {
  * Updates invoice status AND creates immutable transaction record
  */
 export const payInvoice = async (req, res, next) => {
-  const client = await pool.connect();
-
   try {
     const { id } = req.params;
     const adminId = req.user.id;
     const validated = req.validated;
 
-    // Start ACID transaction
-    await client.query('BEGIN');
-
-    // Fetch invoice within transaction
-    const invoiceResult = await client.query(
-      'SELECT * FROM invoices WHERE id = $1 FOR UPDATE',
-      [parseInt(id)]
-    );
-
-    const invoice = invoiceResult.rows[0];
-
-    if (!invoice) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({
-        error: {
-          message: 'Invoice not found',
-          statusCode: 404,
-          timestamp: new Date().toISOString()
-        }
+    const rawQ = async (sql, params, t) => {
+      const [rows] = await sequelize.query(sql, {
+        bind: params,
+        transaction: t,
+        raw: true,
       });
-    }
+      return { rows: Array.isArray(rows) ? rows : [] };
+    };
 
-    // Verify admin owns this invoice
-    if (invoice.admin_id !== adminId) {
-      await client.query('ROLLBACK');
-      return res.status(403).json({
-        error: {
-          message: 'Forbidden: You do not own this invoice',
-          statusCode: 403,
-          timestamp: new Date().toISOString()
-        }
-      });
-    }
+    await sequelize.transaction(async (t) => {
+      const invoiceResult = await rawQ(
+        'SELECT * FROM invoices WHERE id = $1 FOR UPDATE',
+        [parseInt(id)],
+        t
+      );
+      const invoice = invoiceResult.rows[0];
 
-    // Verify invoice is pending
-    if (invoice.status !== 'pending') {
-      await client.query('ROLLBACK');
-      return res.status(400).json({
-        error: {
-          message: `Invoice cannot be paid. Current status: ${invoice.status}`,
-          statusCode: 400,
-          timestamp: new Date().toISOString()
-        }
-      });
-    }
+      if (!invoice) {
+        const err = new Error('Invoice not found');
+        err.statusCode = 404;
+        throw err;
+      }
 
-    // Update invoice status to 'paid' and set paid_at timestamp
-    await client.query(
-      'UPDATE invoices SET status = $1, paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-      ['paid', parseInt(id)]
-    );
+      if (invoice.admin_id !== adminId) {
+        const err = new Error('Forbidden: You do not own this invoice');
+        err.statusCode = 403;
+        throw err;
+      }
 
-    // Create immutable transaction record
-    await client.query(
-      `INSERT INTO transactions (invoice_id, student_id, admin_id, transaction_type, amount, payment_method, reference_number)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        parseInt(id),
-        invoice.student_id,
-        adminId,
-        'payment',
-        parseFloat(invoice.total_amount),
-        validated.paymentMethod || null,
-        validated.referenceNumber || null
-      ]
-    );
+      if (invoice.status !== 'pending') {
+        const err = new Error(`Invoice cannot be paid. Current status: ${invoice.status}`);
+        err.statusCode = 400;
+        throw err;
+      }
 
-    // Commit transaction
-    await client.query('COMMIT');
+      await rawQ(
+        'UPDATE invoices SET status = $1, paid_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        ['paid', parseInt(id)],
+        t
+      );
 
-    // Fetch updated invoice
+      await rawQ(
+        `INSERT INTO transactions (invoice_id, student_id, admin_id, transaction_type, amount, payment_method, reference_number)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          parseInt(id),
+          invoice.student_id,
+          adminId,
+          'payment',
+          parseFloat(invoice.total_amount),
+          validated.paymentMethod || null,
+          validated.referenceNumber || null,
+        ],
+        t
+      );
+    });
+
     const updatedInvoice = await Invoice.findById(parseInt(id));
 
     res.status(200).json({
@@ -227,21 +212,19 @@ export const payInvoice = async (req, res, next) => {
         dueDate: updatedInvoice.due_date,
         paidAt: updatedInvoice.paid_at,
         createdAt: updatedInvoice.created_at,
-        updatedAt: updatedInvoice.updated_at
-      }
+        updatedAt: updatedInvoice.updated_at,
+      },
     });
   } catch (error) {
-    await client.query('ROLLBACK');
+    const statusCode = error.statusCode || 500;
     console.error('Error processing payment:', error);
-    res.status(500).json({
+    res.status(statusCode).json({
       error: {
-        message: 'Failed to process payment',
-        statusCode: 500,
-        timestamp: new Date().toISOString()
-      }
+        message: statusCode !== 500 ? error.message : 'Failed to process payment',
+        statusCode,
+        timestamp: new Date().toISOString(),
+      },
     });
-  } finally {
-    client.release();
   }
 };
 
@@ -290,8 +273,11 @@ export const generateInvoicePDF = async (req, res, next) => {
       });
     }
 
-     const student = await User.findById(invoice.student_id);
-     const academySettings = await AcademySettings.getPrimary();
+     const [student, academySettings, paymentMethods] = await Promise.all([
+       User.findById(invoice.student_id),
+       AcademySettings.findByAdminId(invoice.admin_id),
+       PaymentMethod.getByAdmin(invoice.admin_id, true),
+     ]);
 
      if (!student) {
        return res.status(404).json({
@@ -336,12 +322,8 @@ export const generateInvoicePDF = async (req, res, next) => {
     doc.moveDown(0.5);
 
     if (academySettings) {
-      const contactInfo = [];
-      if (academySettings.subdomain) contactInfo.push(`Domain: ${academySettings.subdomain}`);
-      if (academySettings.bank_account_info) contactInfo.push(`Bank: ${academySettings.bank_account_info}`);
-      contactInfo.forEach(info => {
-        doc.fontSize(9).text(info, { align: 'center' });
-      });
+      if (academySettings.contact_email) doc.fontSize(9).text(academySettings.contact_email, { align: 'center' });
+      if (academySettings.contact_phone) doc.fontSize(9).text(academySettings.contact_phone, { align: 'center' });
     }
 
     doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
@@ -353,7 +335,7 @@ export const generateInvoicePDF = async (req, res, next) => {
     doc.text(`Invoice #: ${invoice.id}`, { continued: true });
     doc.text(`Status: ${invoice.status.toUpperCase()}`, { align: 'right' });
     doc.text(`Period: ${invoice.invoice_month}`);
-    doc.text(`Date: ${new Date(invoice.created_at).toLocaleDateString()}`, { continued: true });
+    doc.text(`Date: ${new Date(invoice.created_at).toLocaleDateString()}`, { continued: !!invoice.paid_at });
     if (invoice.paid_at) {
       doc.text(`Paid Date: ${new Date(invoice.paid_at).toLocaleDateString()}`, { align: 'right' });
     }
@@ -396,13 +378,42 @@ export const generateInvoicePDF = async (req, res, next) => {
 
     // Payment instructions
     if (invoice.status === 'pending') {
-      doc.fontSize(11).font('Helvetica-Bold').text('Payment Instructions:');
-      doc.fontSize(10).font('Helvetica');
-      doc.text('Please transfer the total amount shown above to the following account:');
-      doc.moveDown(0.5);
+      if (paymentMethods && paymentMethods.length > 0) {
+        paymentMethods.forEach((pm) => {
+          const blockTop = doc.y;
+          const leftX = 50;
+          const rightX = 300;
+          const colWidth = 230;
 
-      // You would fetch actual payment methods here
-      doc.text('Contact your academy for payment method details.', { align: 'center' });
+          // Right column: Payment Details subtitle + all method info
+          let rightY = blockTop;
+          doc.fontSize(10).font('Helvetica-Bold').text('Payment Details', rightX, rightY, { width: colWidth });
+          rightY = doc.y;
+          doc.fontSize(10).font('Helvetica').text(pm.method_name, rightX, rightY, { width: colWidth });
+          rightY = doc.y;
+          if (pm.bank_name)       { doc.text(`Bank: ${pm.bank_name}`, rightX, rightY, { width: colWidth }); rightY = doc.y; }
+          if (pm.account_holder)  { doc.text(`Account Holder: ${pm.account_holder}`, rightX, rightY, { width: colWidth }); rightY = doc.y; }
+          if (pm.account_number)  { doc.text(`Account Number: ${pm.account_number}`, rightX, rightY, { width: colWidth }); rightY = doc.y; }
+          if (pm.additional_info) { doc.text(pm.additional_info, rightX, rightY, { width: colWidth }); rightY = doc.y; }
+
+          // Left column: vertically centered relative to right column height
+          const rightHeight = rightY - blockTop;
+          const leftColEstimatedHeight = 48; // ~title line + 3 wrapped lines
+          const leftTopOffset = Math.max(0, Math.round((rightHeight - leftColEstimatedHeight) / 2));
+          doc.fontSize(11).font('Helvetica-Bold').text('Payment Instructions:', leftX, blockTop + leftTopOffset, { width: colWidth });
+          let leftY = doc.y;
+          doc.fontSize(10).font('Helvetica').text(
+            'Please transfer the total amount shown above to one of the following accounts:',
+            leftX, leftY, { width: colWidth }
+          );
+
+          // Advance past whichever column is taller
+          doc.y = Math.max(doc.y, rightY);
+          doc.moveDown(0.8);
+        });
+      } else {
+        doc.text('Contact your academy for payment method details.', { align: 'center' });
+      }
     } else if (invoice.status === 'paid') {
       doc.fontSize(11).font('Helvetica-Bold').fillColor('green').text('✓ PAID');
       doc.fillColor('black');
@@ -517,4 +528,38 @@ export const getStudentInvoices = async (req, res, next) => {
   }
 };
 
-export default { getInvoices, getInvoice, payInvoice, generateInvoicePDF, generateMonthlyInvoices, getStudentInvoices };
+/**
+ * DELETE /api/invoices/:id
+ * Delete an invoice (admin only, must own the invoice)
+ */
+export const deleteInvoice = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user.id;
+
+    const invoice = await Invoice.findById(parseInt(id));
+
+    if (!invoice) {
+      return res.status(404).json({
+        error: { message: 'Invoice not found', statusCode: 404, timestamp: new Date().toISOString() }
+      });
+    }
+
+    if (invoice.admin_id !== adminId) {
+      return res.status(403).json({
+        error: { message: 'Forbidden: You do not own this invoice', statusCode: 403, timestamp: new Date().toISOString() }
+      });
+    }
+
+    await Invoice.delete(parseInt(id));
+
+    res.status(200).json({ success: true, message: 'Invoice deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting invoice:', error);
+    res.status(500).json({
+      error: { message: 'Failed to delete invoice', statusCode: 500, timestamp: new Date().toISOString() }
+    });
+  }
+};
+
+export default { getInvoices, getInvoice, payInvoice, generateInvoicePDF, generateMonthlyInvoices, getStudentInvoices, deleteInvoice };

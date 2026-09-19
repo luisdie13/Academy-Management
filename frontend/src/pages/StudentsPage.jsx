@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import api from '../services/api'
+import BackButton from '../components/BackButton'
+import { useLanguageStore } from '../stores/languageStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { formatCurrency, getCurrencySymbol } from '../utils/currency'
 
@@ -30,6 +32,7 @@ const EMPTY_FORM = {
 
 function StudentsPage() {
   const { currency, fetchCurrency } = useSettingsStore()
+  const { t } = useLanguageStore()
   const [activeTab, setActiveTab] = useState('active')
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -150,7 +153,7 @@ function StudentsPage() {
       paymentMode: student.paymentMode || 'postpaid',
       classPrice: student.classPrice ?? 0,
       monthlyFixedAmount: student.monthlyFixedAmount ?? 0,
-      selectedClassIds: [],
+      selectedClassIds: student.enrolledClassIds || [],
       birthday: student.birthday ? student.birthday.split('T')[0] : '',
       dpi: student.dpi || '',
       department: student.department || '',
@@ -295,20 +298,23 @@ function StudentsPage() {
     <div className="min-h-screen bg-white dark:bg-gray-950 px-4 py-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
+        <div className="mb-2">
+          <BackButton to="/dashboard" label="← Dashboard" />
+        </div>
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              Student Management
+              {t('students.title')}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Manage active and inactive students
+              {t('students.subtitle')}
             </p>
           </div>
           <button
             onClick={() => setShowModal(true)}
             className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors"
           >
-            + Register Student
+            {t('students.registerStudent')}
           </button>
         </div>
 
@@ -329,7 +335,7 @@ function StudentsPage() {
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
-            👥 Active Students
+            👥 {t('students.tabActive')}
           </button>
           <button
             onClick={() => setActiveTab('inactive')}
@@ -339,7 +345,7 @@ function StudentsPage() {
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
-            ⏸️ Inactive Students
+            ⏸️ {t('students.tabInactive')}
           </button>
         </div>
 
@@ -348,19 +354,19 @@ function StudentsPage() {
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading students...</p>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
             </div>
           </div>
         ) : students.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl">
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              No {activeTab === 'active' ? 'active' : 'inactive'} students registered
+              {t('students.noStudents')}
             </p>
             <button
               onClick={() => setShowModal(true)}
               className="inline-block px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors"
             >
-              Register the first student
+              {t('students.registerStudent')}
             </button>
           </div>
         ) : (
@@ -368,14 +374,14 @@ function StudentsPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Name</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Email</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Phone</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Payment Mode</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Price/Class</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Monthly Fixed</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Actions</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('students.colName')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('students.colEmail')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('students.colPhone')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('students.colStatus')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('students.colPaymentMode')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('students.pricePerClass')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('students.monthlyAmount')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -395,7 +401,7 @@ function StudentsPage() {
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}>
-                        {student.status === 'active' ? '✅ Active' : '⏸️ Inactive'}
+                        {student.status === 'active' ? `✅ ${t('common.active')}` : `⏸️ ${t('common.inactive')}`}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">
@@ -411,13 +417,13 @@ function StudentsPage() {
                           onClick={() => handleEditStudent(student)}
                           className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-xs font-semibold"
                         >
-                          ✏️ Edit
+                          ✏️ {t('common.edit')}
                         </button>
                         <button
                           onClick={() => handleDeleteStudent(student.id)}
                           className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors text-xs font-semibold"
                         >
-                          🗑️ Delete
+                          🗑️ {t('common.delete')}
                         </button>
                       </div>
                     </td>
@@ -435,7 +441,7 @@ function StudentsPage() {
               {/* Modal Header */}
               <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-6 flex items-center justify-between sticky top-0 z-10">
                 <h2 className="text-2xl font-bold text-white">
-                  {editingStudentId ? 'Edit Student' : 'Register New Student'}
+                  {editingStudentId ? t('students.editStudentTitle') : t('students.registerStudentTitle')}
                 </h2>
                 <button onClick={handleCloseModal} className="text-white hover:opacity-80 transition-opacity">✕</button>
               </div>
@@ -451,7 +457,7 @@ function StudentsPage() {
 
                   {/* ── Basic Info ─────────────────────────────── */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">First Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('students.firstName')} *</label>
                     <input type="text" name="firstName" value={formData.firstName} onChange={handleChange}
                       placeholder="Jane"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -459,7 +465,7 @@ function StudentsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Name *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('students.lastName')} *</label>
                     <input type="text" name="lastName" value={formData.lastName} onChange={handleChange}
                       placeholder="Doe"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -467,7 +473,7 @@ function StudentsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('students.email')} *</label>
                     <input type="email" name="email" value={formData.email} onChange={handleChange}
                       placeholder="jane@example.com"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -475,7 +481,7 @@ function StudentsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('students.phone')} *</label>
                     <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
                       placeholder="+502 7777-7777"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -484,14 +490,14 @@ function StudentsPage() {
 
                   {/* ── Additional Info ───────────────────────── */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date of Birth (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('students.birthday')} (Optional)</label>
                     <input type="date" name="birthday" value={formData.birthday} onChange={handleChange}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                       disabled={isSubmitting} />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">DPI (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('students.dpi')} (Optional)</label>
                     <input type="text" name="dpi" value={formData.dpi} onChange={handleChange}
                       placeholder="e.g. 1234567890123"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -525,34 +531,34 @@ function StudentsPage() {
 
                   {/* ── Class Modality ───────────────────────── */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Modalidad de clases (Opcional)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('students.classModalityLabel')}</label>
                     <select name="classModality" value={formData.classModality} onChange={handleChange}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                       disabled={isSubmitting}>
-                      <option value="">Seleccionar modalidad</option>
-                      <option value="in_person">En la academia (presencial)</option>
-                      <option value="virtual">Virtual (en línea)</option>
-                      <option value="residential">Residencial (a domicilio)</option>
+                      <option value="">{t('students.selectModality')}</option>
+                      <option value="in_person">{t('students.inPerson')}</option>
+                      <option value="virtual">{t('students.virtual')}</option>
+                      <option value="residential">{t('students.residential')}</option>
                     </select>
                   </div>
 
                   {/* ── Guardian Info ─────────────────────────── */}
                   <div className="p-4 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                     <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-4 flex items-center gap-2">
-                      <span>👥</span> Guardian Information (Optional)
+                      <span>👥</span> {t('students.guardianInfo')}
                     </h3>
 
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guardian Name</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('students.guardianName')}</label>
                         <input type="text" name="guardianName" value={formData.guardianName} onChange={handleChange}
-                          placeholder="Guardian's full name"
+                          placeholder={t('students.guardianNamePlaceholder')}
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
                           disabled={isSubmitting} />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guardian Phone</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('students.guardianPhone')}</label>
                         <input type="tel" name="guardianPhone" value={formData.guardianPhone} onChange={handleChange}
                           placeholder="+1234567890"
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -560,7 +566,7 @@ function StudentsPage() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guardian Email</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('students.guardianEmail')}</label>
                         <input type="email" name="guardianEmail" value={formData.guardianEmail} onChange={handleChange}
                           placeholder="guardian@email.com"
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -568,18 +574,18 @@ function StudentsPage() {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Relationship to Student</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('students.guardianRelationship')}</label>
                         <select name="guardianRelationship" value={formData.guardianRelationship} onChange={handleChange}
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                           disabled={isSubmitting}>
-                          <option value="">Select a relationship</option>
-                          <option value="Father">Father</option>
-                          <option value="Mother">Mother</option>
-                          <option value="Legal Guardian">Legal Guardian</option>
-                          <option value="Grandparent">Grandparent</option>
-                          <option value="Uncle/Aunt">Uncle/Aunt</option>
-                          <option value="Older Sibling">Older Sibling</option>
-                          <option value="Other">Other</option>
+                          <option value="">{t('students.selectRelationship')}</option>
+                          <option value="Father">{t('students.relationshipFather')}</option>
+                          <option value="Mother">{t('students.relationshipMother')}</option>
+                          <option value="Legal Guardian">{t('students.relationshipLegalGuardian')}</option>
+                          <option value="Grandparent">{t('students.relationshipGrandparent')}</option>
+                          <option value="Uncle/Aunt">{t('students.relationshipUncleAunt')}</option>
+                          <option value="Older Sibling">{t('students.relationshipOlderSibling')}</option>
+                          <option value="Other">{t('students.relationshipOther')}</option>
                         </select>
                       </div>
                     </div>
@@ -588,7 +594,7 @@ function StudentsPage() {
                   {/* ── Password (edit: if unused) ─────────────── */}
                   {editingStudentId && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Temporary Password</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('students.tempPasswordLabel')}</label>
                       {formData.mustChangePassword === true ? (
                         <>
                           <div className="relative">
@@ -597,7 +603,7 @@ function StudentsPage() {
                               name="password"
                               value={formData.password}
                               onChange={handleChange}
-                              placeholder="New temporary password"
+                              placeholder={t('students.tempPasswordLabel')}
                               className="w-full px-4 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
                               disabled={isSubmitting}
                             />
@@ -608,16 +614,16 @@ function StudentsPage() {
                             </button>
                           </div>
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            ✏️ Password has not been used yet. You can correct or set a new one.
+                            ✏️ {t('students.tempPasswordUnused')}
                           </p>
                         </>
                       ) : (
                         <>
-                          <input type="password" value="••••••••" placeholder="Password used"
+                          <input type="password" value="••••••••" placeholder={t('students.tempPasswordUsedPlaceholder')}
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white cursor-not-allowed"
                             disabled />
                           <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                            🔒 Password already used by the student. Cannot be changed.
+                            🔒 {t('students.tempPasswordUsed')}
                           </p>
                         </>
                       )}
@@ -626,7 +632,7 @@ function StudentsPage() {
 
                   {/* ── Status ───────────────────────────────── */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('common.status')}</label>
                     <select name="status" value={formData.status} onChange={handleChange}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                       disabled={isSubmitting}>
@@ -678,7 +684,7 @@ function StudentsPage() {
 
                   {/* ── Payment Mode ──────────────────────────── */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Mode</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('students.paymentMode')}</label>
                     <select name="paymentMode" value={formData.paymentMode} onChange={handleChange}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
                       disabled={isSubmitting}>
@@ -726,15 +732,15 @@ function StudentsPage() {
 
                   {/* ── Classes ───────────────────────────────── */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">🎓 Classes to Enroll (Optional)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">🎓 {t('students.classesToEnroll')}</label>
                     {loadingClasses ? (
                       <div className="p-4 text-center">
                         <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary-600"></div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Loading classes...</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{t('students.loadingClasses')}</p>
                       </div>
                     ) : availableClasses.length === 0 ? (
                       <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-center">
-                        <p className="text-xs text-gray-600 dark:text-gray-400">No classes available</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{t('students.noClassesAvailable')}</p>
                       </div>
                     ) : (
                       <div className="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 p-3 space-y-2">
@@ -755,7 +761,7 @@ function StudentsPage() {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{cls.title}</p>
                               <p className="text-xs text-gray-600 dark:text-gray-400">
-                                {cls.instructor ? `Instructor: ${cls.instructor}` : 'No instructor'}
+                                {cls.instructor ? `Instructor: ${cls.instructor}` : t('students.noInstructor')}
                               </p>
                             </div>
                           </label>
@@ -769,12 +775,12 @@ function StudentsPage() {
                     <button type="button" onClick={handleCloseModal}
                       className="flex-1 px-4 py-2 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       disabled={isSubmitting}>
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <button type="submit"
                       className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={isSubmitting}>
-                      {isSubmitting ? (editingStudentId ? 'Updating...' : 'Registering...') : (editingStudentId ? 'Update' : 'Register')}
+                      {isSubmitting ? t('common.loading') : (editingStudentId ? t('common.update') : t('students.registerStudent'))}
                     </button>
                   </div>
                 </form>
@@ -788,7 +794,7 @@ function StudentsPage() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full">
               <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-6 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-white">✅ Student Registered!</h2>
+                <h2 className="text-2xl font-bold text-white">✅ {t('students.registerStudentTitle')}!</h2>
                 <button onClick={handleCloseModal} className="text-white hover:opacity-80 transition-opacity">✕</button>
               </div>
 
@@ -798,7 +804,7 @@ function StudentsPage() {
                 </p>
 
                 <div className="bg-gray-100 dark:bg-gray-700 border-2 border-green-500 rounded-lg p-4 mb-4">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Temporary Password:</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">{t('students.tempPasswordLabel')}:</p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 text-lg font-mono text-gray-900 dark:text-white bg-white dark:bg-gray-600 px-3 py-2 rounded break-all">
                       {tempPassword}
@@ -807,7 +813,7 @@ function StudentsPage() {
                       onClick={() => { navigator.clipboard.writeText(tempPassword); alert('Password copied to clipboard!') }}
                       className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition-colors"
                     >
-                      📋 Copy
+                      📋 {t('common.confirm')}
                     </button>
                   </div>
                 </div>
@@ -828,7 +834,7 @@ function StudentsPage() {
                   onClick={handleCloseModal}
                   className="w-full px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors"
                 >
-                  Close
+                  {t('common.close')}
                 </button>
               </div>
             </div>

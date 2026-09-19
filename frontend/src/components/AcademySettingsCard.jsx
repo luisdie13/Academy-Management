@@ -3,10 +3,12 @@ import { useAuthStore } from '../stores/authStore'
 import api from '../services/api'
 import { useTheme } from '../context/ThemeContext'
 import { applyPalette } from '../utils/colorPalette'
+import { useLanguageStore } from '../stores/languageStore'
 
 function AcademySettingsCard() {
   const { user } = useAuthStore()
   const { updateTheme } = useTheme()
+  const { lang, setLang, t } = useLanguageStore()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -147,10 +149,10 @@ function AcademySettingsCard() {
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
           <span className="text-3xl">⚙️</span>
-          Academy Settings
+          {t('academySettings.title')}
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Manage your academy identity and settings
+          {t('academySettings.subtitle')}
         </p>
       </div>
 
@@ -169,7 +171,7 @@ function AcademySettingsCard() {
       <div className="mb-8 space-y-4">
         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Academy Name
+            {t('academySettings.academyName')}
           </label>
           <p className="text-gray-900 dark:text-white text-lg font-medium">
             {settings?.name || '(Not configured)'}
@@ -179,7 +181,7 @@ function AcademySettingsCard() {
         {settings?.subdomain && (
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Academy Code (Subdomain)
+              {t('academySettings.subdomain')}
             </label>
             <p className="text-gray-900 dark:text-white font-mono text-lg">
               {settings.subdomain}
@@ -193,7 +195,7 @@ function AcademySettingsCard() {
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Primary Color
+              {t('academySettings.primaryColor')}
             </label>
             <div className="flex items-center gap-3">
               <div
@@ -208,7 +210,7 @@ function AcademySettingsCard() {
 
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Secondary Color
+              {t('academySettings.secondaryColor')}
             </label>
             <div className="flex items-center gap-3">
               <div
@@ -230,13 +232,13 @@ function AcademySettingsCard() {
             className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
           >
             <span>✏️</span>
-            Edit Settings
+            {t('academySettings.edit')}
           </button>
         ) : (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Academy Name
+                {t('academySettings.academyName')}
               </label>
               <input
                 type="text"
@@ -253,7 +255,7 @@ function AcademySettingsCard() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Academy Code (Subdomain)
+                {t('academySettings.subdomain')}
               </label>
               <input
                 type="text"
@@ -270,7 +272,7 @@ function AcademySettingsCard() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Primary Color
+                {t('academySettings.primaryColor')}
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -292,7 +294,7 @@ function AcademySettingsCard() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Secondary Color
+                {t('academySettings.secondaryColor')}
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -322,30 +324,47 @@ function AcademySettingsCard() {
                     : 'bg-green-600 hover:bg-green-700 text-white'
                 }`}
               >
-                {updating ? 'Saving...' : 'Save Changes'}
+                {updating ? t('academySettings.saving') : t('academySettings.save')}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={updating}
                 className="flex-1 px-6 py-3 font-semibold rounded-lg transition-colors bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>
         )}
       </div>
 
-      <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">
-          ℹ️ About Academy Settings
-        </h3>
-        <ul className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
-          <li>✓ Your academy name appears in all documents and communications</li>
-          <li>✓ The academy code must be unique — you'll get an error if it's already taken</li>
-          <li>✓ Custom colors will be reflected in your academy interface</li>
-          <li>✓ Changes apply immediately upon saving</li>
-        </ul>
+      {/* Language selector */}
+      <div className="mt-8 p-5 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          🌐 {t('settings.languageLabel')}
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setLang('es')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold border-2 transition-colors ${
+              lang === 'es'
+                ? 'bg-primary-600 border-primary-600 text-white'
+                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-300 hover:border-primary-400'
+            }`}
+          >
+            🇬🇹 {t('settings.spanish')}
+          </button>
+          <button
+            onClick={() => setLang('en')}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold border-2 transition-colors ${
+              lang === 'en'
+                ? 'bg-primary-600 border-primary-600 text-white'
+                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-300 hover:border-primary-400'
+            }`}
+          >
+            🇺🇸 {t('settings.english')}
+          </button>
+        </div>
       </div>
     </div>
   )

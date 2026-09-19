@@ -1,41 +1,23 @@
-import pg from 'pg';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Get __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env from backend directory if not in Docker (Docker provides env vars directly)
-if (process.env.NODE_ENV !== 'docker' && !process.env.DB_HOST) {
-  const backendEnvPath = path.join(__dirname, '../../.env');
-  dotenv.config({ path: backendEnvPath });
-}
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
-const { Pool } = pg;
+neonConfig.webSocketConstructor = ws;
 
-// Create connection pool
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'academy_db',
-  user: process.env.DB_USER || 'academy_user',
-  password: process.env.DB_PASSWORD || 'academy_password',
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+const pool = new Pool({ connectionString: process.env.NEON_DB });
 
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
   process.exit(-1);
 });
 
-/**
- * Initialize database connection
- * Test the connection and verify the database is ready
- */
 export const initializeDatabase = async () => {
   try {
     const client = await pool.connect();
@@ -49,40 +31,25 @@ export const initializeDatabase = async () => {
   }
 };
 
-/**
- * Execute a query
- * @param {string} text - SQL query text
- * @param {array} params - Query parameters
- */
-export const query = async (text, params) => {
+export const query = async (text, params = []) => {
   try {
-    const result = await pool.query(text, params);
-    return result;
+    return await pool.query(text, params);
   } catch (error) {
     console.error('Query error:', error);
     throw error;
   }
 };
 
-/**
- * Get a single row from a query
- */
-export const queryOne = async (text, params) => {
+export const queryOne = async (text, params = []) => {
   const result = await query(text, params);
   return result.rows[0];
 };
 
-/**
- * Get all rows from a query
- */
-export const queryAll = async (text, params) => {
+export const queryAll = async (text, params = []) => {
   const result = await query(text, params);
   return result.rows;
 };
 
-/**
- * Execute a transaction
- */
 export const transaction = async (callback) => {
   const client = await pool.connect();
   try {
@@ -98,9 +65,6 @@ export const transaction = async (callback) => {
   }
 };
 
-/**
- * Close the pool
- */
 export const closePool = async () => {
   await pool.end();
 };

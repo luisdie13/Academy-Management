@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import api from '../services/api'
+import { useLanguageStore } from '../stores/languageStore'
 
 function ChangePasswordPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout, checkAuth } = useAuthStore()
+  const { t } = useLanguageStore()
 
   const [formData, setFormData] = useState({
     currentPassword: '',
@@ -152,9 +154,9 @@ function ChangePasswordPage() {
       <div className="w-full max-w-md">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-2xl overflow-hidden">
           <div className="bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-600 dark:to-amber-700 px-6 py-8">
-            <h1 className="text-3xl font-bold text-white text-center">Change Password</h1>
+            <h1 className="text-3xl font-bold text-white text-center">{t('changePassword.title')}</h1>
             <p className="text-amber-100 text-center mt-2">
-              You must change your password to continue
+              {t('changePassword.mustChange')}
             </p>
           </div>
 
@@ -172,20 +174,20 @@ function ChangePasswordPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <PasswordField id="currentPassword" field="current" label="Current Password" />
-              <PasswordField id="newPassword" field="new" label="New Password" />
-              <PasswordField id="confirmPassword" field="confirm" label="Confirm New Password" />
+              <PasswordField id="currentPassword" field="current" label={t('changePassword.currentPassword')} />
+              <PasswordField id="newPassword" field="new" label={t('changePassword.newPassword')} />
+              <PasswordField id="confirmPassword" field="confirm" label={t('changePassword.confirmPassword')} />
 
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2">
-                  Password requirements:
+                  {t('changePassword.requirements')}
                 </p>
                 <ul className="text-xs text-blue-600 dark:text-blue-400 space-y-1">
-                  <li>✓ At least 8 characters</li>
-                  <li>✓ At least one uppercase letter</li>
-                  <li>✓ At least one lowercase letter</li>
-                  <li>✓ At least one number</li>
-                  <li>✓ At least one special character (!@#$%^&*)</li>
+                  <li>✓ {t('changePassword.minLength')}</li>
+                  <li>✓ {t('changePassword.hasUpperCase')}</li>
+                  <li>✓ {t('changePassword.hasLowerCase')}</li>
+                  <li>✓ {t('changePassword.hasNumber')}</li>
+                  <li>✓ {t('changePassword.hasSpecialChar')}</li>
                 </ul>
               </div>
 
@@ -194,7 +196,7 @@ function ChangePasswordPage() {
                 disabled={loading}
                 className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {loading ? 'Changing password...' : 'Change Password'}
+                {loading ? t('changePassword.changing') : t('changePassword.changePassword')}
               </button>
             </form>
 
@@ -203,7 +205,7 @@ function ChangePasswordPage() {
                 onClick={handleLogout}
                 className="w-full text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
               >
-                ← Back to login
+                {t('changePassword.backToLogin')}
               </button>
             </div>
           </div>
