@@ -36,11 +36,15 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:8080', 'http://localhost:3000', 'http://localhost:5173'];
 
-app.use(cors({
+const corsOptions = {
   origin: allowedOrigins,
   credentials: true,
-  optionsSuccessStatus: 200
-}));
+  optionsSuccessStatus: 200,
+};
+
+// Respond to preflight OPTIONS requests before any other middleware
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 
 const isDev = process.env.NODE_ENV === 'development';
 
