@@ -29,22 +29,30 @@ const PORT = process.env.API_PORT || 3000;
 // rate limiting uses the real client IP instead of the proxy's IP.
 app.set('trust proxy', 1);
 
-app.use(helmet());
-app.disable('x-powered-by');
-
+// CORS must be registered before helmet and everything else.
+// On Vercel, if the app crashes after helmet but before cors runs,
+// error responses have no CORS headers and the browser sees a CORS failure.
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:8080', 'http://localhost:3000', 'http://localhost:5173'];
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.error(`[CORS] Blocked origin: "${origin}". Allowed: ${allowedOrigins.join(', ')}`);
+    callback(null, false);
+  },
   credentials: true,
   optionsSuccessStatus: 200,
 };
 
-// Respond to preflight OPTIONS requests before any other middleware
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
+
+app.use(helmet());
+app.disable('x-powered-by');
 
 const isDev = process.env.NODE_ENV === 'development';
 
